@@ -1,0 +1,13 @@
+# config.yaml
+DataBasePath: $HOME/apps/mpt_testing
+Log:
+  Path: $HOME/apps/mpt/logs
+  LevelDB: 2 # INFO = 0, WARNING = 1, ERROR = 2
+  GormOutputEnabled: true
+Api:
+  Port: 9000
+  JWTKey: $MPT_JWT_KEY
+  UseSwagger: true
+  AuthenticationRequired: true
+PDF:
+  Path: $HOME/apps/mpt/pdf

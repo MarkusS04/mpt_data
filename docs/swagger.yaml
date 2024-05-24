@@ -1,0 +1,1253 @@
+basePath: /api/v1
+definitions:
+  apimodel.OrderTask:
+    properties:
+      orderNumber:
+        type: integer
+      taskID:
+        type: integer
+    type: object
+  apimodel.OrderTaskDetail:
+    properties:
+      orderNumber:
+        type: integer
+      taskDetailID:
+        type: integer
+    type: object
+  apimodel.Result:
+    properties:
+      result:
+        type: string
+    type: object
+  apimodel.UserLogin:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  auth.changePW.pw:
+    properties:
+      password:
+        type: string
+    type: object
+  dbmodel.Meeting:
+    properties:
+      Date:
+        type: string
+      id:
+        type: integer
+    type: object
+  dbmodel.Person:
+    properties:
+      givenName:
+        type: string
+      id:
+        type: integer
+      lastName:
+        type: string
+    type: object
+  dbmodel.PersonRecurringAbsence:
+    properties:
+      id:
+        type: integer
+      weekday:
+        type: integer
+    type: object
+  dbmodel.PersonTask:
+    properties:
+      id:
+        type: integer
+      person:
+        $ref: '#/definitions/dbmodel.Person'
+      taskDetail:
+        $ref: '#/definitions/dbmodel.TaskDetail'
+    type: object
+  dbmodel.Plan:
+    properties:
+      id:
+        type: integer
+      meeting:
+        $ref: '#/definitions/dbmodel.Meeting'
+      person:
+        $ref: '#/definitions/dbmodel.Person'
+      taskDetail:
+        $ref: '#/definitions/dbmodel.TaskDetail'
+    type: object
+  dbmodel.Task:
+    properties:
+      descr:
+        type: string
+      id:
+        type: integer
+      orderNumber:
+        type: integer
+      taskDetails:
+        items:
+          $ref: '#/definitions/dbmodel.TaskDetail'
+        type: array
+    type: object
+  dbmodel.TaskDetail:
+    properties:
+      descr:
+        type: string
+      id:
+        type: integer
+      orderNumber:
+        type: integer
+      task:
+        $ref: '#/definitions/dbmodel.Task'
+      taskID:
+        type: integer
+    type: object
+  plan.updatePlan.p:
+    properties:
+      id:
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: Meeting Planning Tool API
+  license:
+    name: MIT
+    url: https://opensource.org/license/MIT
+  title: MPT
+  version: "1"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Login to Service
+      parameters:
+      - description: Auth Information
+        in: body
+        name: Auth-Information
+        required: true
+        schema:
+          $ref: '#/definitions/apimodel.UserLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            Authorization:
+              description: Bearer-Token
+              type: string
+      summary: Login
+      tags:
+      - Users
+  /meeting:
+    get:
+      consumes:
+      - application/json
+      description: Get all Meetings in the specified time period
+      parameters:
+      - description: Start date/timestamp, Either English Date, or RFC3339
+        example: '"2023-01-21", "2023-01-21T00:00:00+00:00"'
+        in: query
+        name: StartDate
+        required: true
+        type: string
+      - description: End date/timestamp, Either English Date, or RFC3339
+        example: '"2023-01-21", "2023-01-21T00:00:00+00:00"'
+        in: query
+        name: EndDate
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dbmodel.Meeting'
+            type: array
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Get Meetings
+      tags:
+      - Meeting
+    post:
+      consumes:
+      - application/json
+      description: Add Meetings
+      parameters:
+      - description: Meetings
+        in: body
+        name: Meetings
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/dbmodel.Meeting'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Add Meetings
+      tags:
+      - Meeting
+  /meeting/{MeetingId}/absence:
+    delete:
+      consumes:
+      - application/json
+      description: Delete absent people for a meeting
+      parameters:
+      - description: ID of meeting
+        in: path
+        name: MeetingId
+        required: true
+        type: integer
+      - description: ID of people who are no longer absent
+        in: body
+        name: Absence
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Absence
+      tags:
+      - Meeting
+      - Absence
+    get:
+      consumes:
+      - application/json
+      description: Get absent people for a meeting
+      parameters:
+      - description: ID of meeting
+        in: path
+        name: MeetingId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dbmodel.Person'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Get Absence
+      tags:
+      - Meeting
+      - Absence
+    post:
+      consumes:
+      - application/json
+      description: Add absent people for a meeting
+      parameters:
+      - description: ID of meeting
+        in: path
+        name: MeetingId
+        required: true
+        type: integer
+      - description: ID of people who are absent
+        in: body
+        name: Absence
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Add Absence
+      tags:
+      - Meeting
+      - Absence
+  /meeting/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete one Meeting
+      parameters:
+      - description: ID of meeting
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Meetings
+      tags:
+      - Meeting
+    put:
+      consumes:
+      - application/json
+      description: Update the date of one meeting
+      parameters:
+      - description: ID of meeting
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Meeting
+        in: body
+        name: Meeting
+        required: true
+        schema:
+          $ref: '#/definitions/dbmodel.Meeting'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Update Meetings
+      tags:
+      - Meeting
+  /person:
+    get:
+      consumes:
+      - application/json
+      description: Get all Persons
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dbmodel.Person'
+            type: array
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Get Person
+      tags:
+      - Person
+    post:
+      consumes:
+      - application/json
+      description: Add Person
+      parameters:
+      - description: Person
+        in: body
+        name: Person
+        required: true
+        schema:
+          $ref: '#/definitions/dbmodel.Person'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dbmodel.Person'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Add Person
+      tags:
+      - Person
+  /person/{PersonId}/absence:
+    delete:
+      consumes:
+      - application/json
+      description: Delete absence of person in period
+      parameters:
+      - description: ID of person
+        in: path
+        name: PersonId
+        required: true
+        type: integer
+      - description: ID of meeting where person is no longer absent
+        in: body
+        name: Absence
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Absence
+      tags:
+      - Person
+      - Absence
+    get:
+      consumes:
+      - application/json
+      description: Get absence of person in period
+      parameters:
+      - description: ID of person
+        in: path
+        name: PersonId
+        required: true
+        type: integer
+      - description: Start date/timestamp, Either English Date, or RFC3339
+        example: '"2023-01-21", "2023-01-21T00:00:00+00:00"'
+        in: query
+        name: StartDate
+        required: true
+        type: string
+      - description: End date/timestamp, Either English Date, or RFC3339
+        example: '"2023-01-21", "2023-01-21T00:00:00+00:00"'
+        in: query
+        name: EndDate
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dbmodel.Meeting'
+            type: array
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Get Absence
+      tags:
+      - Person
+      - Absence
+    post:
+      consumes:
+      - application/json
+      description: Add absence of person in period
+      parameters:
+      - description: ID of person
+        in: path
+        name: PersonId
+        required: true
+        type: integer
+      - description: ID of meetings where person is absent
+        in: body
+        name: Absence
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Add Absence
+      tags:
+      - Person
+      - Absence
+  /person/{PersonId}/absencerecurring:
+    delete:
+      consumes:
+      - application/json
+      description: Delete absence of person in period
+      parameters:
+      - description: ID of person
+        in: path
+        name: PersonId
+        required: true
+        type: integer
+      - description: Weekday where person is no longer absent
+        in: body
+        name: Absence
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Absence
+      tags:
+      - Person
+      - Absence
+    get:
+      consumes:
+      - application/json
+      description: Get recurring absence of person
+      parameters:
+      - description: ID of person
+        in: path
+        name: PersonId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dbmodel.PersonRecurringAbsence'
+            type: array
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Get Absence
+      tags:
+      - Person
+      - Absence
+    post:
+      consumes:
+      - application/json
+      description: Add recurring absence to person
+      parameters:
+      - description: ID of person
+        in: path
+        name: PersonId
+        required: true
+        type: integer
+      - description: Weekdays where person is absent. 0 = Sunday
+        in: body
+        name: Absence
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Add Absence
+      tags:
+      - Person
+      - Absence
+  /person/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete one person with its details
+      parameters:
+      - description: ID of Person
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Person
+      tags:
+      - Person
+    put:
+      consumes:
+      - application/json
+      description: Update a person
+      parameters:
+      - description: ID of Person
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Update Person
+      tags:
+      - Person
+  /person/{id}/task:
+    delete:
+      consumes:
+      - application/json
+      description: Delete tasks of a person
+      parameters:
+      - description: ID of Person
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task-Details which should be deleted from a person
+        in: body
+        name: Task
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Persons Task
+      tags:
+      - Person
+      - Task
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Get Tasks of Person(s)
+        ID of Person must always be set, 0 to load all persons with their tasks
+      parameters:
+      - description: ID of Person
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dbmodel.Task'
+            type: array
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: eg. loading failed due to any error
+      security:
+      - ApiKeyAuth: []
+      summary: Get Person-Task
+      tags:
+      - Person
+      - Task
+    post:
+      consumes:
+      - application/json
+      description: Add Tasks to a Person
+      parameters:
+      - description: ID of Person
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task-Details which should be added to a person
+        in: body
+        name: Task
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/dbmodel.PersonTask'
+            type: array
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Add Tasks to Person
+      tags:
+      - Person
+      - Task
+  /plan:
+    get:
+      consumes:
+      - application/json
+      description: Get Plan for a period
+      parameters:
+      - description: Start date/timestamp, Either English Date, or RFC3339
+        example: '"2023-01-21", "2023-01-21T00:00:00+00:00"'
+        in: query
+        name: StartDate
+        required: true
+        type: string
+      - description: End date/timestamp, Either English Date, or RFC3339
+        example: '"2023-01-21", "2023-01-21T00:00:00+00:00"'
+        in: query
+        name: EndDate
+        required: true
+        type: string
+      produces:
+      - application/json
+      - application/pdf
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dbmodel.Plan'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Get Plan
+      tags:
+      - Plan
+    post:
+      consumes:
+      - application/json
+      description: Create Plan for a period
+      parameters:
+      - description: Start date/timestamp, Either English Date, or RFC3339
+        example: '"2023-01-21", "2023-01-21T00:00:00+00:00"'
+        in: query
+        name: StartDate
+        required: true
+        type: string
+      - description: End date/timestamp, Either English Date, or RFC3339
+        example: '"2023-01-21", "2023-01-21T00:00:00+00:00"'
+        in: query
+        name: EndDate
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/dbmodel.Plan'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Create Plan
+      tags:
+      - Plan
+  /plan/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get Plan for a specific planId
+      parameters:
+      - description: ID of plan item
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dbmodel.Plan'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Get Plan with ID
+      tags:
+      - Plan
+    put:
+      consumes:
+      - application/json
+      description: Update Person for one task and meeting
+      parameters:
+      - description: ID of plan item
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ID of Person
+        in: body
+        name: person
+        required: true
+        schema:
+          $ref: '#/definitions/plan.updatePlan.p'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Update a Plan Element
+      tags:
+      - Plan
+  /plan/{id}/people:
+    get:
+      consumes:
+      - application/json
+      description: Loads all people for a meeting with specified task
+      parameters:
+      - description: ID of plan item
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dbmodel.Person'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Get people forPlan
+      tags:
+      - Plan
+  /task:
+    get:
+      consumes:
+      - application/json
+      description: Get all Tasks with their details
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dbmodel.Task'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Get Task
+      tags:
+      - Task
+    post:
+      consumes:
+      - application/json
+      description: Add Task
+      parameters:
+      - description: Task
+        in: body
+        name: Task
+        required: true
+        schema:
+          $ref: '#/definitions/dbmodel.Task'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dbmodel.Task'
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Add Task
+      tags:
+      - Task
+    put:
+      consumes:
+      - application/json
+      description: Update the Ordering of Tasks in selects
+      parameters:
+      - description: Array to hold all tasks and their ordering
+        in: body
+        name: tasks
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/apimodel.OrderTask'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Update Task Order
+      tags:
+      - Task
+  /task/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete one Task with its details
+      parameters:
+      - description: ID of task
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Task
+      tags:
+      - Task
+    put:
+      consumes:
+      - application/json
+      description: Update the name of a task
+      parameters:
+      - description: ID of task
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: task
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/dbmodel.Task'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Update Task
+      tags:
+      - Task
+  /task/{id}/detail:
+    post:
+      consumes:
+      - application/json
+      description: Add Detail to Task
+      parameters:
+      - description: ID of task
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: TaskDetail
+        in: body
+        name: TaskDetail
+        required: true
+        schema:
+          $ref: '#/definitions/dbmodel.TaskDetail'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dbmodel.TaskDetail'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Add Detail
+      tags:
+      - Task
+    put:
+      consumes:
+      - application/json
+      description: Update the Ordering of TaskDetails in selects
+      parameters:
+      - description: ID of task
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Array to hold all taskDetails and their ordering
+        in: body
+        name: tasks
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/apimodel.OrderTaskDetail'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Update TaskDetail Order
+      tags:
+      - Task
+  /task/{id}/detail/{detailId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete Detail of Task
+      parameters:
+      - description: ID of task
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ID of taskdetail
+        in: path
+        name: detailId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Detail
+      tags:
+      - Task
+    put:
+      consumes:
+      - application/json
+      description: Update the name of a taskdetail
+      parameters:
+      - description: ID of task
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ID of taskdetail
+        in: path
+        name: detailId
+        required: true
+        type: integer
+      - description: task
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/dbmodel.Task'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Update TaskDetail
+      tags:
+      - Task
+  /user/password:
+    post:
+      consumes:
+      - application/json
+      description: Change the Password to login
+      parameters:
+      - description: Auth Information
+        in: body
+        name: Auth-Information
+        required: true
+        schema:
+          $ref: '#/definitions/auth.changePW.pw'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apimodel.Result'
+      security:
+      - ApiKeyAuth: []
+      summary: Change Password
+      tags:
+      - Users
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

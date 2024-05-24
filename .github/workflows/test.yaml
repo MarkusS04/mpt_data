@@ -1,0 +1,25 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - '*'
+    tags:
+      - '!v*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v5.0.1
+
+      - name: Prepare env
+        run: go run test/prep.go
+
+      - name: execute Tests
+        run: go test ./...
