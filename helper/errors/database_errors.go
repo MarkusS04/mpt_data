@@ -9,6 +9,7 @@ var ErrUserAlreadyExists = errors.New("user already exists")
 var (
 	ErrNotAllMeetingsCreated = errors.New("not all given meetings written to DB")
 	ErrMeetingNotDeleted     = errors.New("meeting not deleted")
+	ErrMeetingTagAlreadySet  = errors.New("tag for meeting is already set")
 )
 
 var (

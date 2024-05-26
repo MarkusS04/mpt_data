@@ -42,6 +42,7 @@ type (
 
 	planData struct {
 		meeting dbModel.Meeting
+		tag     dbModel.Tag
 		person  map[*dbModel.TaskDetail]dbModel.Person
 	}
 )
@@ -132,7 +133,11 @@ func getPdfData(period generalmodel.Period) (data pdfData, err error) {
 	// If planFields are present, organize data accordingly
 	if len(planFields) > 0 {
 		lastMeeting := planFields[0].MeetingID
-		currentPlanData := planData{meeting: planFields[0].Meeting, person: make(map[*dbModel.TaskDetail]dbModel.Person)}
+		currentPlanData := planData{
+			meeting: planFields[0].Meeting,
+			person:  make(map[*dbModel.TaskDetail]dbModel.Person),
+			tag:     planFields[0].Meeting.Tag,
+		}
 
 		for _, plan := range planFields {
 			// If new meeting, create new planData entry, meetings are ordered by data
@@ -141,6 +146,7 @@ func getPdfData(period generalmodel.Period) (data pdfData, err error) {
 				currentPlanData = planData{
 					meeting: plan.Meeting,
 					person:  make(map[*dbModel.TaskDetail]dbModel.Person),
+					tag:     plan.Meeting.Tag,
 				}
 			}
 			currentPlanData.person[&plan.TaskDetail] = plan.Person
@@ -169,6 +175,12 @@ func (pdf *pdf) printTable(data pdfData) {
 			pdf.writeCell(pdf.widthDate/2, row.meeting.Date.Format("02.01."))
 			pdf.file.SetFont("Times", "", 12)
 			pdf.writeCell(pdf.widthDate/2, getWeekdayName(row.meeting.Date.Weekday(), German))
+
+			if row.tag.ID != 0 {
+				pdf.writeCell(pdf.WidthPageAvailable-pdf.widthDate, row.tag.Descr)
+				pdf.file.Ln(-1)
+				continue
+			}
 
 			for i := 0; i < len(task.TaskDetails); i++ {
 				if person, ok := getEntryByAttributeValue(row.person, task.TaskDetails[i].ID); ok {

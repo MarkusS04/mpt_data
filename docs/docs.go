@@ -393,6 +393,93 @@ const docTemplate = `{
                 }
             }
         },
+        "/meeting/{id}/tag": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Add a Tag to a Meeting",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Meeting"
+                ],
+                "summary": "Add Tag",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID of meeting",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "The Tag that will be created and link to meeting",
+                        "name": "Tag",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbmodel.Tag"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete a Tag to a Meeting",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Meeting"
+                ],
+                "summary": "Delete Tag",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID of meeting",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
         "/person": {
             "get": {
                 "security": [
@@ -1837,6 +1924,9 @@ const docTemplate = `{
                 "Date": {
                     "type": "string"
                 },
+                "Tag": {
+                    "$ref": "#/definitions/dbmodel.Tag"
+                },
                 "id": {
                     "type": "integer"
                 }
@@ -1895,6 +1985,17 @@ const docTemplate = `{
                 },
                 "taskDetail": {
                     "$ref": "#/definitions/dbmodel.TaskDetail"
+                }
+            }
+        },
+        "dbmodel.Tag": {
+            "type": "object",
+            "properties": {
+                "descr": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
                 }
             }
         },

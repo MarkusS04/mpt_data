@@ -1,3 +1,4 @@
+// Package meeting provides api Routes to manipulate meetings
 package meeting
 
 import (
@@ -6,6 +7,7 @@ import (
 	"mpt_data/api/apihelper"
 	api_helper "mpt_data/api/apihelper"
 	"mpt_data/api/auth"
+	"mpt_data/database"
 	"mpt_data/database/meeting"
 	"mpt_data/helper"
 	"mpt_data/helper/errors"
@@ -26,6 +28,9 @@ func RegisterRoutes(mux *mux.Router) {
 	mux.HandleFunc(apiModel.MeetingHref, auth.CheckAuthentication(addMeeting)).Methods(http.MethodPost)
 	mux.HandleFunc(apiModel.MeetingHrefWithID, auth.CheckAuthentication(updatetMeeting)).Methods(http.MethodPut)
 	mux.HandleFunc(apiModel.MeetingHrefWithID, auth.CheckAuthentication(deleteMeeting)).Methods(http.MethodDelete)
+
+	mux.HandleFunc(apiModel.MeetingTagHref, auth.CheckAuthentication(addTag)).Methods(http.MethodPost)
+	mux.HandleFunc(apiModel.MeetingTagHref, auth.CheckAuthentication(deleteTag)).Methods(http.MethodDelete)
 }
 
 // @Summary		Get Meetings
@@ -36,7 +41,7 @@ func RegisterRoutes(mux *mux.Router) {
 // @Param			StartDate	query	string	true	"Start date/timestamp, Either English Date, or RFC3339"	Example("2023-01-21", "2023-01-21T00:00:00+00:00")
 // @Param			EndDate		query	string	true	"End date/timestamp, Either English Date, or RFC3339"	Example("2023-01-21", "2023-01-21T00:00:00+00:00")
 // @Security		ApiKeyAuth
-// @Success		200 {array} dbModel.Meeting
+// @Success		200	{array}	dbModel.Meeting
 // @Failure		400
 // @Failure		401
 // @Router			/meeting [GET]
@@ -159,4 +164,71 @@ func deleteMeeting(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
+}
+
+// @Summary		Add Tag
+// @Description	Add a Tag to a Meeting
+// @Tags			Meeting
+// @Accept			json
+// @Produce		json
+// @Param			id	path	int			true	"ID of meeting"
+// @Param			Tag	body	dbModel.Tag	true	"The Tag that will be created and link to meeting"
+// @Security		ApiKeyAuth
+// @Success		200
+// @Failure		400
+// @Failure		401
+// @Router			/meeting/{id}/tag [POST]
+func addTag(w http.ResponseWriter, r *http.Request) {
+	const funcName = packageName + ".addTag"
+	id, err := helper.ExtractIntFromURL(r, "id")
+	if err != nil || *id <= 0 {
+		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "id not valid"}, err)
+		return
+	}
+
+	var data dbModel.Tag
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		return
+	}
+
+	tx := database.DB.Begin()
+	defer tx.Commit()
+
+	if err := meeting.CreateTag(tx, uint(*id), data); err != nil {
+		tx.Rollback()
+		api_helper.ResponseBadRequest(w, packageName+".addTag", apiModel.Result{Result: "tag could not be created"}, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// @Summary		Delete Tag
+// @Description	Delete a Tag to a Meeting
+// @Tags			Meeting
+// @Accept			json
+// @Produce		json
+// @Param			id	path	int	true	"ID of meeting"
+// @Security		ApiKeyAuth
+// @Success		200
+// @Failure		400
+// @Failure		401
+// @Router			/meeting/{id}/tag [DELETE]
+func deleteTag(w http.ResponseWriter, r *http.Request) {
+	const funcName = packageName + ".deleteTag"
+	id, err := helper.ExtractIntFromURL(r, "id")
+	if err != nil || *id <= 0 {
+		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "id not valid"}, err)
+		return
+	}
+
+	tx := database.DB.Begin()
+	defer tx.Commit()
+
+	if err := meeting.DeleteTag(tx, uint(*id)); err != nil {
+		tx.Rollback()
+		api_helper.ResponseBadRequest(w, packageName+".deleteTag", apiModel.Result{Result: "tag could not be created"}, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }

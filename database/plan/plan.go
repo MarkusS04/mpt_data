@@ -21,6 +21,7 @@ func GetPlan(period generalmodel.Period) ([]dbModel.Plan, error) {
 	var plan []dbModel.Plan
 	if err :=
 		database.DB.Preload("Person").
+			Preload("Meeting.Tag").
 			Preload("Meeting").
 			Preload("TaskDetail.Task").
 			Preload("TaskDetail").
@@ -37,6 +38,7 @@ func GetPlan(period generalmodel.Period) ([]dbModel.Plan, error) {
 func GetPlanWithID(planID uint) (plan dbModel.Plan, err error) {
 	if err :=
 		database.DB.Preload("Person").
+			Preload("Meeting.Tag").
 			Preload("Meeting").
 			Preload("TaskDetail.Task").
 			Preload("TaskDetail").
@@ -50,18 +52,12 @@ func GetPlanWithID(planID uint) (plan dbModel.Plan, err error) {
 // CreatePlanData creates all entries in table plans for the specified period and if people are available they will be automatically assigned
 func CreatePlanData(db *gorm.DB, period generalmodel.Period) ([]dbModel.Plan, error) {
 	const funcName = packageName + ".CreatePlanData"
-	var pdf dbModel.PDF
 	err :=
-		database.DB.
+		database.DB.Model(&dbModel.PDF{}).
 			Where("start_date between ? and ?", period.StartDate, period.EndDate).
 			Or("end_date between ? and ?", period.StartDate, period.EndDate).
-			First(&pdf).Error
+			Update("data_changed", true).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		logging.LogError(funcName, err.Error())
-		return nil, err
-	}
-	pdf.DataChanged = true
-	if err := database.DB.Save(&pdf).Error; err != nil {
 		logging.LogError(funcName, err.Error())
 		return nil, err
 	}
@@ -71,7 +67,7 @@ func CreatePlanData(db *gorm.DB, period generalmodel.Period) ([]dbModel.Plan, er
 
 	var meetings []dbModel.Meeting
 	if err :=
-		tx.Where("date between ? and ?", period.StartDate, period.EndDate).
+		tx.Preload("Tag").Where("date between ? and ?", period.StartDate, period.EndDate).
 			Find(&meetings).Error; err != nil {
 		logging.LogError(funcName, "errorr loading meetings: "+err.Error())
 		return nil, err
@@ -85,6 +81,9 @@ func CreatePlanData(db *gorm.DB, period generalmodel.Period) ([]dbModel.Plan, er
 
 	var planIDs []uint
 	for _, meeting := range meetings {
+		if meeting.Tag.ID != 0 {
+			continue
+		}
 		for _, task := range tasks {
 			var ids []uint
 			if tx.Table("plans").Where("meeting_id = ?", meeting.ID).Where("task_detail_id = ?", task.ID).Select("id").Find(&ids); len(ids) != 0 {

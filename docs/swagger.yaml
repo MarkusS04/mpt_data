@@ -35,6 +35,8 @@ definitions:
     properties:
       Date:
         type: string
+      Tag:
+        $ref: '#/definitions/dbmodel.Tag'
       id:
         type: integer
     type: object
@@ -73,6 +75,13 @@ definitions:
         $ref: '#/definitions/dbmodel.Person'
       taskDetail:
         $ref: '#/definitions/dbmodel.TaskDetail'
+    type: object
+  dbmodel.Tag:
+    properties:
+      descr:
+        type: string
+      id:
+        type: integer
     type: object
   dbmodel.Task:
     properties:
@@ -352,6 +361,61 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Update Meetings
+      tags:
+      - Meeting
+  /meeting/{id}/tag:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a Tag to a Meeting
+      parameters:
+      - description: ID of meeting
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Tag
+      tags:
+      - Meeting
+    post:
+      consumes:
+      - application/json
+      description: Add a Tag to a Meeting
+      parameters:
+      - description: ID of meeting
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: The Tag that will be created and link to meeting
+        in: body
+        name: Tag
+        required: true
+        schema:
+          $ref: '#/definitions/dbmodel.Tag'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKeyAuth: []
+      summary: Add Tag
       tags:
       - Meeting
   /person:
