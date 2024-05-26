@@ -1,0 +1,13 @@
+# config.yaml
+DataBasePath: STRING
+Log:
+  Path: STRING
+  LevelDB: INT # INFO = 0, WARNING = 1, ERROR = 2
+  GormOutputEnabled: BOOL
+Api:
+  Port: INT
+  JWTKey: STRING
+  UseSwagger: BOOL
+  AuthenticationRequired: BOOL
+PDF:
+  Path: STRING
