@@ -1,3 +1,4 @@
+// Package helper provides general functions, like config handling
 package helper
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config stores config based on a config file, and on requests made to secret management platform
 type config struct {
 	DataBasePath string
 	Log          struct {
@@ -23,6 +25,15 @@ type config struct {
 	PDF struct {
 		Path string
 	}
+
+	SECRETS struct {
+		Use          bool
+		Environment  string
+		WorkspaceID  string
+		ClientID     string
+		ClientSecret string
+		JWTKey       bool
+	}
 }
 
 var Config config
@@ -37,21 +48,28 @@ func LoadConfig() {
 		panic(fmt.Errorf("fatal error config file: %s", err))
 	}
 
-	var conf config
-	if err := viper.Unmarshal(&conf); err != nil {
+	if err := viper.Unmarshal(&Config); err != nil {
 		panic(fmt.Errorf("unable to decode into struct, %v", err))
 	}
-	conf.API.JWTKey = os.ExpandEnv(conf.API.JWTKey)
 
-	conf.DataBasePath = os.ExpandEnv(conf.DataBasePath)
-	conf.Log.Path = os.ExpandEnv(conf.Log.Path)
-	conf.PDF.Path = os.ExpandEnv(conf.PDF.Path)
+	if Config.SECRETS.Use {
+		loginToSecretProvider()
+		if Config.SECRETS.JWTKey {
+			Config.API.JWTKey = getKeyFromSecretProvider("JWT_KEY")
+		} else {
+			Config.API.JWTKey = os.ExpandEnv(Config.API.JWTKey)
+		}
+	} else {
+		Config.API.JWTKey = os.ExpandEnv(Config.API.JWTKey)
+	}
 
-	createDirIfNotExist(conf.DataBasePath)
-	createDirIfNotExist(conf.Log.Path)
-	createDirIfNotExist(conf.PDF.Path)
+	Config.DataBasePath = os.ExpandEnv(Config.DataBasePath)
+	Config.Log.Path = os.ExpandEnv(Config.Log.Path)
+	Config.PDF.Path = os.ExpandEnv(Config.PDF.Path)
 
-	Config = conf
+	createDirIfNotExist(Config.DataBasePath)
+	createDirIfNotExist(Config.Log.Path)
+	createDirIfNotExist(Config.PDF.Path)
 }
 
 func createDirIfNotExist(path string) {

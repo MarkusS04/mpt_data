@@ -11,3 +11,11 @@ Api:
   AuthenticationRequired: BOOL
 PDF:
   Path: STRING
+
+SECRETS:
+  Use: BOOL
+  Environment: STRING # prod, dev, staging
+  WorkspaceID: STRING
+  ClientID: STRING
+  ClientSecret: STRING
+  JWTKey: BOOL # should JWT in secret provider be used
