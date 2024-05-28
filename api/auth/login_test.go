@@ -3,14 +3,24 @@ package auth
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"mpt_data/database"
+	"mpt_data/helper/config"
 	"mpt_data/test/vars"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
 func TestMain(m *testing.M) {
+
+	if err := os.Chdir("../.."); err != nil {
+		fmt.Println(err)
+	}
+	// Load the config
+	config.LoadConfig()
+
 	if err := database.Connect(vars.GetDbPAth()); err != nil {
 		panic(err)
 	}
@@ -24,6 +34,8 @@ func TestLoginHandler(t *testing.T) {
 		t.Error("error test prep:", err)
 		return
 	}
+
+	fmt.Println(string(payload))
 
 	// Create a mock request with the payload
 	req, err := http.NewRequest("POST", "/api/v1/login", bytes.NewBuffer(payload))

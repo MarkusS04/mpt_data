@@ -15,7 +15,7 @@ type Person struct {
 	LastName   string `gorm:"not null"`
 }
 
-func (p *Person) encrypt(tx *gorm.DB) error {
+func (p *Person) encrypt() error {
 	givenName, err := helper.EncryptData([]byte(p.GivenName))
 	if err != nil {
 		return err
@@ -31,15 +31,18 @@ func (p *Person) encrypt(tx *gorm.DB) error {
 	return nil
 }
 
-func (p *Person) BeforeCreate(tx *gorm.DB) (err error) {
-	return p.encrypt(tx)
+// BeforeCreate encryptes data in Database
+func (p *Person) BeforeCreate(_ *gorm.DB) (err error) {
+	return p.encrypt()
 }
 
-func (p *Person) BeforeUpdate(tx *gorm.DB) (err error) {
-	return p.encrypt(tx)
+// BeforeUpdate encryptes data in Database
+func (p *Person) BeforeUpdate(_ *gorm.DB) (err error) {
+	return p.encrypt()
 }
 
-func (p *Person) AfterFind(tx *gorm.DB) (err error) {
+// AfterFind decryptes data from Database
+func (p *Person) AfterFind(_ *gorm.DB) (err error) {
 	givenName, err := helper.DecryptData([]byte(p.GivenName))
 	if err != nil {
 		return err

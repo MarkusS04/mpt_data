@@ -27,7 +27,8 @@ func TestMain(m *testing.M) {
 func TestCreateUser(t *testing.T) {
 	user := apiModel.UserLogin{Username: "M_Maier", Password: "TestingPW"}
 	t.Cleanup(func() {
-		database.DB.Unscoped().Delete(&dbModel.User{}, "username = ?", user.Username)
+		u := dbModel.User{Username: []byte(user.Username)}
+		database.DB.Unscoped().Delete(&dbModel.User{}, "username = ?", u.EncryptedUsername)
 	})
 	var testcases = []struct {
 		name string
@@ -52,7 +53,7 @@ func TestCreateUser(t *testing.T) {
 	}
 }
 func TestAddUser(t *testing.T) {
-	user := dbModel.User{Username: "M_Maier", Hash: "Test"}
+	user := dbModel.User{Username: []byte("M_Maier"), Hash: "Test"}
 	t.Cleanup(func() {
 		database.DB.Unscoped().Delete(&dbModel.User{}, "username = ?", user.Username)
 	})

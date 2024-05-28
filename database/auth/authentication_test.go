@@ -41,8 +41,8 @@ func TestHash(t *testing.T) {
 			t.Errorf("expexted no error, got %s", err)
 		}
 
-		if hash == "" {
-			t.Errorf("expexted string, got empty string")
+		if hash == nil {
+			t.Errorf("expexted data, got empty slice")
 		}
 	})
 }

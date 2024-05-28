@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mpt_data/database"
 	"mpt_data/database/auth"
+	"mpt_data/helper/config"
 	"mpt_data/models"
 	"mpt_data/test/vars"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 // main must run to prepare the test environment
 func main() {
+	config.LoadConfig()
 	dbPath := vars.GetDbPAth()
 	if err := os.RemoveAll(dbPath); err != nil {
 		fmt.Println(err)
