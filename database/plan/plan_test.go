@@ -3,7 +3,7 @@ package plan
 import (
 	"fmt"
 	"mpt_data/database"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	"mpt_data/test/vars"
 	"os"
 	"testing"
@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 		fmt.Println(err)
 	}
 	// Load the config
-	helper.LoadConfig()
+	config.LoadConfig()
 	m.Run()
 }
 

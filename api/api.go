@@ -9,7 +9,7 @@ import (
 	"mpt_data/api/person/absenceperson"
 	"mpt_data/api/plan"
 	"mpt_data/api/task"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -23,12 +23,12 @@ func PrepareServer() http.Handler {
 }
 
 func registerRoutes(mux *mux.Router) {
-	if helper.Config.API.UseSwagger {
+	if config.Config.API.UseSwagger {
 		fmt.Println("swagger is running")
 		initSwagger(mux)
 	}
 
-	if helper.Config.API.AuthenticationRequired {
+	if config.Config.API.AuthenticationRequired {
 		auth.RegisterRoutes(mux)
 	}
 	meeting.RegisterRoutes(mux)

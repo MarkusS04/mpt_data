@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"mpt_data/database"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	myerrors "mpt_data/helper/errors"
 	dbModel "mpt_data/models/dbmodel"
 	generalmodel "mpt_data/models/general"
@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 		fmt.Println(err)
 	}
 	// Load the config
-	helper.LoadConfig()
+	config.LoadConfig()
 	m.Run()
 }
 

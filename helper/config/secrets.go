@@ -1,5 +1,5 @@
-// Package helper provides general functions, like config handling
-package helper
+// Package config provides configuration and secret management
+package config
 
 import (
 	"encoding/json"

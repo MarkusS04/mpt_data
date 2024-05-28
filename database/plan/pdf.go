@@ -6,7 +6,7 @@ import (
 	"mpt_data/database"
 	"mpt_data/database/logging"
 	"mpt_data/database/task"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	dbModel "mpt_data/models/dbmodel"
 	generalmodel "mpt_data/models/general"
 	"strings"
@@ -73,7 +73,7 @@ func GetOrCreatePDF(period generalmodel.Period) (path string, err error) {
 	pdf.printTable(pdfData)
 
 	pdfName := fmt.Sprintf("Dienerplan-%s.pdf", strings.ReplaceAll(headline, " ", ""))
-	pdfFile := fmt.Sprintf("%s/%s", helper.Config.PDF.Path, pdfName)
+	pdfFile := fmt.Sprintf("%s/%s", config.Config.PDF.Path, pdfName)
 
 	if err :=
 		pdf.file.OutputFileAndClose(pdfFile); err != nil {

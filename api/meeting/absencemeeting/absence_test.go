@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"mpt_data/database"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	apiModel "mpt_data/models/apimodel"
 	dbModel "mpt_data/models/dbmodel"
 	api_test "mpt_data/test/api"
@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 		fmt.Println(err)
 	}
 	// Load the config
-	helper.LoadConfig()
+	config.LoadConfig()
 
 	if err := database.DB.Create(&meetingT).Error; err != nil {
 		fmt.Println("err", err)

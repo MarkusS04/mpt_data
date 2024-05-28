@@ -3,7 +3,7 @@ package person
 import (
 	"fmt"
 	"mpt_data/database"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	dbModel "mpt_data/models/dbmodel"
 	"mpt_data/test/vars"
 	"os"
@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 		fmt.Println(err)
 	}
 	// Load the config
-	helper.LoadConfig()
+	config.LoadConfig()
 	m.Run()
 }
 

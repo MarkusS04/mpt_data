@@ -3,7 +3,7 @@ package logging
 import (
 	"fmt"
 	"mpt_data/database"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	dbModel "mpt_data/models/dbmodel"
 	"os"
 	"time"
@@ -40,7 +40,7 @@ func addLog(LogLevel LogLevel, Source, Text string) {
 
 	year, month, day := log.TimeStamp.Date()
 
-	logFilename := fmt.Sprintf("%s/%d_%d_%d.log", helper.Config.Log.Path, year, month, day)
+	logFilename := fmt.Sprintf("%s/%d_%d_%d.log", config.Config.Log.Path, year, month, day)
 	file, err := os.OpenFile(logFilename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -53,7 +53,7 @@ func addLog(LogLevel LogLevel, Source, Text string) {
 		fmt.Println("Error:", err)
 	}
 
-	if helper.Config.Log.LevelDB <= uint(LogLevel) {
+	if config.Config.Log.LevelDB <= uint(LogLevel) {
 		dbLog(log)
 	}
 }

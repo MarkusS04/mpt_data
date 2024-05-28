@@ -1,5 +1,7 @@
 # config.yaml
-DataBasePath: STRING
+Database:
+  Path: STRING
+  EncryptionKey: STRING
 Log:
   Path: STRING
   LevelDB: INT # INFO = 0, WARNING = 1, ERROR = 2
@@ -18,4 +20,5 @@ SECRETS:
   WorkspaceID: STRING
   ClientID: STRING
   ClientSecret: STRING
-  JWTKey: BOOL # should JWT in secret provider be used
+  JWTKey: BOOL # use secretprovider or configfile
+  DBEncryptionKey: BOOl # use secretprovider or configfile

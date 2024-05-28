@@ -5,7 +5,7 @@ import (
 	"mpt_data/database"
 	"mpt_data/database/auth"
 	"mpt_data/database/logging"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	"mpt_data/helper/errors"
 	apiModel "mpt_data/models/apimodel"
 	dbModel "mpt_data/models/dbmodel"
@@ -28,7 +28,7 @@ func Init() {
 		&dbModel.PDF{},
 	); err != nil {
 		// kein Logging in DB verfügbar
-		helper.Config.Log.LevelDB = ^uint(0)
+		config.Config.Log.LevelDB = ^uint(0)
 		logging.LogError("models.Init", err.Error())
 		os.Exit(1)
 	}

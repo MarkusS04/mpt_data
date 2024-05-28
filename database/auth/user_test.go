@@ -3,7 +3,7 @@ package auth
 import (
 	"fmt"
 	"mpt_data/database"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	"mpt_data/helper/errors"
 	apiModel "mpt_data/models/apimodel"
 	dbModel "mpt_data/models/dbmodel"
@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 		fmt.Println(err)
 	}
 	// Load the config
-	helper.LoadConfig()
+	config.LoadConfig()
 	m.Run()
 }
 

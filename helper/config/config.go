@@ -1,5 +1,5 @@
-// Package helper provides general functions, like config handling
-package helper
+// Package config provides configuration and secret management
+package config
 
 import (
 	"fmt"
@@ -10,8 +10,11 @@ import (
 
 // Config stores config based on a config file, and on requests made to secret management platform
 type config struct {
-	DataBasePath string
-	Log          struct {
+	Database struct {
+		Path          string
+		EncryptionKey string
+	}
+	Log struct {
 		Path              string
 		LevelDB           uint
 		GormOutputEnabled bool
@@ -63,11 +66,11 @@ func LoadConfig() {
 		Config.API.JWTKey = os.ExpandEnv(Config.API.JWTKey)
 	}
 
-	Config.DataBasePath = os.ExpandEnv(Config.DataBasePath)
+	Config.Database.Path = os.ExpandEnv(Config.Database.Path)
 	Config.Log.Path = os.ExpandEnv(Config.Log.Path)
 	Config.PDF.Path = os.ExpandEnv(Config.PDF.Path)
 
-	createDirIfNotExist(Config.DataBasePath)
+	createDirIfNotExist(Config.Database.Path)
 	createDirIfNotExist(Config.Log.Path)
 	createDirIfNotExist(Config.PDF.Path)
 }

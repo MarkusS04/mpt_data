@@ -5,7 +5,7 @@ import (
 	"mpt_data/api"
 	"mpt_data/database"
 	"mpt_data/database/logging"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	"mpt_data/models"
 	"net/http"
 	"os"
@@ -21,14 +21,14 @@ import (
 // @In							header
 // @Name						Authorization
 func main() {
-	helper.LoadConfig()
-	if err := database.Connect(helper.Config.DataBasePath); err != nil {
+	config.LoadConfig()
+	if err := database.Connect(config.Config.Database.Path); err != nil {
 		fmt.Println("could not connect to database:", err)
 		os.Exit(1)
 	}
 	models.Init()
 
-	if err := http.ListenAndServe(":"+helper.Config.API.Port, api.PrepareServer()); err != nil {
+	if err := http.ListenAndServe(":"+config.Config.API.Port, api.PrepareServer()); err != nil {
 		logging.LogError("main", "Failed to start API")
 		os.Exit(1)
 	}

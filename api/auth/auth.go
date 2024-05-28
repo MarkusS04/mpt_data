@@ -2,7 +2,7 @@ package auth
 
 import (
 	"mpt_data/database/auth"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	"net/http"
 	"strings"
 )
@@ -10,7 +10,7 @@ import (
 func CheckAuthentication(next http.HandlerFunc) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !helper.Config.API.AuthenticationRequired {
+		if !config.Config.API.AuthenticationRequired {
 			next.ServeHTTP(w, r)
 			return
 		}

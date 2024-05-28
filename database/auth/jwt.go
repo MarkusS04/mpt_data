@@ -3,7 +3,7 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"mpt_data/helper"
+	"mpt_data/helper/config"
 	dbModel "mpt_data/models/dbmodel"
 	"strings"
 	"time"
@@ -44,7 +44,7 @@ func generateJWT(user dbModel.User) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	tokenString, err := token.SignedString([]byte(helper.Config.API.JWTKey))
+	tokenString, err := token.SignedString([]byte(config.Config.API.JWTKey))
 	if err != nil {
 		return "", err
 	}
@@ -77,6 +77,6 @@ func getTokenFromString(tokenString string) (*jwt.Token, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte(helper.Config.API.JWTKey), nil
+			return []byte(config.Config.API.JWTKey), nil
 		})
 }
