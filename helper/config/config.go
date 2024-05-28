@@ -2,6 +2,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 
@@ -30,12 +31,31 @@ type config struct {
 	}
 
 	SECRETS struct {
-		Use          bool
-		Environment  string
-		WorkspaceID  string
-		ClientID     string
-		ClientSecret string
-		JWTKey       bool
+		Use             bool
+		Environment     string
+		WorkspaceID     string
+		ClientID        string
+		ClientSecret    string
+		JWTKey          bool
+		DBEncryptionKey bool
+	}
+}
+
+func (conf *config) GetDBEncryptionKey() []byte {
+	key, err := base64.StdEncoding.DecodeString(conf.Database.EncryptionKey)
+	if err != nil {
+		panic(fmt.Sprintf("please check your encryption key: %v", err))
+	}
+	return key
+}
+func (conf *config) testConfig() {
+	if len(conf.API.JWTKey) == 0 {
+		panic("JWT key is empty")
+	}
+	keyLen := len(conf.GetDBEncryptionKey())
+
+	if keyLen != 16 && keyLen != 24 && keyLen != 32 {
+		panic("invalid AES key length: must be 16, 24, or 32 bytes, and Base64-encoded")
 	}
 }
 
@@ -57,14 +77,10 @@ func LoadConfig() {
 
 	if Config.SECRETS.Use {
 		loginToSecretProvider()
-		if Config.SECRETS.JWTKey {
-			Config.API.JWTKey = getKeyFromSecretProvider("JWT_KEY")
-		} else {
-			Config.API.JWTKey = os.ExpandEnv(Config.API.JWTKey)
-		}
-	} else {
-		Config.API.JWTKey = os.ExpandEnv(Config.API.JWTKey)
 	}
+
+	Config.API.JWTKey = getKey(Config.API.JWTKey, "JWT_KEY", Config.SECRETS.Use && Config.SECRETS.JWTKey)
+	Config.Database.EncryptionKey = getKey(Config.Database.EncryptionKey, "DBEncryptionKey", Config.SECRETS.Use && Config.SECRETS.DBEncryptionKey)
 
 	Config.Database.Path = os.ExpandEnv(Config.Database.Path)
 	Config.Log.Path = os.ExpandEnv(Config.Log.Path)
@@ -73,6 +89,15 @@ func LoadConfig() {
 	createDirIfNotExist(Config.Database.Path)
 	createDirIfNotExist(Config.Log.Path)
 	createDirIfNotExist(Config.PDF.Path)
+
+	Config.testConfig()
+}
+
+func getKey(configValue string, secretName string, useSecrets bool) string {
+	if useSecrets {
+		return getKeyFromSecretProvider(secretName)
+	}
+	return os.ExpandEnv(configValue)
 }
 
 func createDirIfNotExist(path string) {

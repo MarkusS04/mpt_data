@@ -2,6 +2,7 @@ package dbmodel
 
 import (
 	"encoding/json"
+	"mpt_data/helper"
 
 	"gorm.io/gorm"
 )
@@ -12,6 +13,46 @@ type Person struct {
 	ID         uint
 	GivenName  string `gorm:"not null"`
 	LastName   string `gorm:"not null"`
+}
+
+func (p *Person) encrypt(tx *gorm.DB) error {
+	givenName, err := helper.EncryptData([]byte(p.GivenName))
+	if err != nil {
+		return err
+	}
+	p.GivenName = string(givenName)
+
+	lastName, err := helper.EncryptData([]byte(p.LastName))
+	if err != nil {
+		return err
+	}
+	p.LastName = string(lastName)
+
+	return nil
+}
+
+func (p *Person) BeforeCreate(tx *gorm.DB) (err error) {
+	return p.encrypt(tx)
+}
+
+func (p *Person) BeforeUpdate(tx *gorm.DB) (err error) {
+	return p.encrypt(tx)
+}
+
+func (p *Person) AfterFind(tx *gorm.DB) (err error) {
+	givenName, err := helper.DecryptData([]byte(p.GivenName))
+	if err != nil {
+		return err
+	}
+	p.GivenName = string(givenName)
+
+	lastName, err := helper.DecryptData([]byte(p.LastName))
+	if err != nil {
+		return err
+	}
+	p.LastName = string(lastName)
+
+	return
 }
 
 type PersonAbsence struct {
