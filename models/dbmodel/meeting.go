@@ -25,6 +25,26 @@ type Tag struct {
 	Descr      string
 }
 
+// BeforeCreate hook for gorm
+func (t *Tag) BeforeCreate(_ *gorm.DB) (err error) {
+	tag, err := helper.EncryptDataToBase64(t.Descr)
+	if err != nil {
+		return err
+	}
+	t.Descr = tag
+	return
+}
+
+// AfterFind hook for gorm
+func (t *Tag) AfterFind(_ *gorm.DB) (err error) {
+	tag, err := helper.DecryptDataFromBase64(t.Descr)
+	if err != nil {
+		return err
+	}
+	t.Descr = string(tag)
+	return
+}
+
 // UnmarshalJSON unmarshals json as meeting
 func (m *Meeting) UnmarshalJSON(data []byte) (err error) {
 	// Unmarshal the JSON data into the temporary struct
