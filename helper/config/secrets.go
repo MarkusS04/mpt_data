@@ -51,9 +51,10 @@ func getKeyFromSecretProvider(key string) string {
 	}
 
 	url := fmt.Sprintf(
-		"%sv3/secrets/raw/%s?environment=%s?workspaceId=?",
+		"%sv3/secrets/raw/%s?workspaceId=%s&environment=%s",
 		infisicalURL,
 		key,
+		Config.SECRETS.WorkspaceID,
 		Config.SECRETS.Environment,
 	)
 

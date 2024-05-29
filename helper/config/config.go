@@ -80,7 +80,7 @@ func LoadConfig() {
 	}
 
 	Config.API.JWTKey = getKey(Config.API.JWTKey, "JWT_KEY", Config.SECRETS.Use && Config.SECRETS.JWTKey)
-	Config.Database.EncryptionKey = getKey(Config.Database.EncryptionKey, "DBEncryptionKey", Config.SECRETS.Use && Config.SECRETS.DBEncryptionKey)
+	Config.Database.EncryptionKey = getKey(Config.Database.EncryptionKey, "DB_ENCRYPTION_KEY", Config.SECRETS.Use && Config.SECRETS.DBEncryptionKey)
 
 	Config.Database.Path = os.ExpandEnv(Config.Database.Path)
 	Config.Log.Path = os.ExpandEnv(Config.Log.Path)
