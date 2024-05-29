@@ -1,4 +1,5 @@
-package auth
+// Package middleware provides middlewares for http mux server
+package middleware
 
 import (
 	"mpt_data/database/auth"
@@ -7,6 +8,7 @@ import (
 	"strings"
 )
 
+// CheckAuthentication middleware checks if a user is correctly authenticated
 func CheckAuthentication(next http.HandlerFunc) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {

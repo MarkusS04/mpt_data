@@ -3,7 +3,7 @@ package plan
 import (
 	"encoding/json"
 	api_helper "mpt_data/api/apihelper"
-	"mpt_data/api/auth"
+	"mpt_data/api/middleware"
 	"mpt_data/database"
 	"mpt_data/database/logging"
 	"mpt_data/database/plan"
@@ -21,11 +21,11 @@ import (
 
 // RegisterRoutes adds all routes to a mux.Router
 func RegisterRoutes(mux *mux.Router) {
-	mux.HandleFunc(apiModel.PlanHref, auth.CheckAuthentication(getPlan)).Methods(http.MethodGet)
-	mux.HandleFunc(apiModel.PlanHrefWithID, auth.CheckAuthentication(getPlanWithID)).Methods(http.MethodGet)
-	mux.HandleFunc(apiModel.PlanHrefWithIDPeople, auth.CheckAuthentication(getPersonPlan)).Methods(http.MethodGet)
-	mux.HandleFunc(apiModel.PlanHref, auth.CheckAuthentication(addPlan)).Methods(http.MethodPost)
-	mux.HandleFunc(apiModel.PlanHrefWithID, auth.CheckAuthentication(updatePlan)).Methods(http.MethodPut)
+	mux.HandleFunc(apiModel.PlanHref, middleware.CheckAuthentication(getPlan)).Methods(http.MethodGet)
+	mux.HandleFunc(apiModel.PlanHrefWithID, middleware.CheckAuthentication(getPlanWithID)).Methods(http.MethodGet)
+	mux.HandleFunc(apiModel.PlanHrefWithIDPeople, middleware.CheckAuthentication(getPersonPlan)).Methods(http.MethodGet)
+	mux.HandleFunc(apiModel.PlanHref, middleware.CheckAuthentication(addPlan)).Methods(http.MethodPost)
+	mux.HandleFunc(apiModel.PlanHrefWithID, middleware.CheckAuthentication(updatePlan)).Methods(http.MethodPut)
 }
 
 // @Summary		Get Plan

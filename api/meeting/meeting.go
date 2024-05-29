@@ -6,7 +6,7 @@ import (
 
 	"mpt_data/api/apihelper"
 	api_helper "mpt_data/api/apihelper"
-	"mpt_data/api/auth"
+	"mpt_data/api/middleware"
 	"mpt_data/database"
 	"mpt_data/database/meeting"
 	"mpt_data/helper"
@@ -24,13 +24,13 @@ const packageName = "api.meeting"
 
 // RegisterRoutes adds all routes to a mux.Router
 func RegisterRoutes(mux *mux.Router) {
-	mux.HandleFunc(apiModel.MeetingHref, auth.CheckAuthentication(getMeetings)).Methods(http.MethodGet)
-	mux.HandleFunc(apiModel.MeetingHref, auth.CheckAuthentication(addMeeting)).Methods(http.MethodPost)
-	mux.HandleFunc(apiModel.MeetingHrefWithID, auth.CheckAuthentication(updatetMeeting)).Methods(http.MethodPut)
-	mux.HandleFunc(apiModel.MeetingHrefWithID, auth.CheckAuthentication(deleteMeeting)).Methods(http.MethodDelete)
+	mux.HandleFunc(apiModel.MeetingHref, middleware.CheckAuthentication(getMeetings)).Methods(http.MethodGet)
+	mux.HandleFunc(apiModel.MeetingHref, middleware.CheckAuthentication(addMeeting)).Methods(http.MethodPost)
+	mux.HandleFunc(apiModel.MeetingHrefWithID, middleware.CheckAuthentication(updatetMeeting)).Methods(http.MethodPut)
+	mux.HandleFunc(apiModel.MeetingHrefWithID, middleware.CheckAuthentication(deleteMeeting)).Methods(http.MethodDelete)
 
-	mux.HandleFunc(apiModel.MeetingTagHref, auth.CheckAuthentication(addTag)).Methods(http.MethodPost)
-	mux.HandleFunc(apiModel.MeetingTagHref, auth.CheckAuthentication(deleteTag)).Methods(http.MethodDelete)
+	mux.HandleFunc(apiModel.MeetingTagHref, middleware.CheckAuthentication(addTag)).Methods(http.MethodPost)
+	mux.HandleFunc(apiModel.MeetingTagHref, middleware.CheckAuthentication(deleteTag)).Methods(http.MethodDelete)
 }
 
 // @Summary		Get Meetings

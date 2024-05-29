@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"mpt_data/api/apihelper"
 	api_helper "mpt_data/api/apihelper"
-	"mpt_data/api/auth"
+	"mpt_data/api/middleware"
 	"mpt_data/database"
 	"mpt_data/database/absence"
 	"mpt_data/helper"
@@ -21,13 +21,13 @@ const packageName = "api.person.absence"
 
 // RegisterRoutes adds all routes to a mux.Router
 func RegisterRoutes(mux *mux.Router) {
-	mux.HandleFunc(apimodel.PersonAbsence, auth.CheckAuthentication(getAbsence)).Methods(http.MethodGet)
-	mux.HandleFunc(apimodel.PersonAbsence, auth.CheckAuthentication(addAbsence)).Methods(http.MethodPost)
-	mux.HandleFunc(apimodel.PersonAbsence, auth.CheckAuthentication(deleteAbsence)).Methods(http.MethodDelete)
+	mux.HandleFunc(apimodel.PersonAbsence, middleware.CheckAuthentication(getAbsence)).Methods(http.MethodGet)
+	mux.HandleFunc(apimodel.PersonAbsence, middleware.CheckAuthentication(addAbsence)).Methods(http.MethodPost)
+	mux.HandleFunc(apimodel.PersonAbsence, middleware.CheckAuthentication(deleteAbsence)).Methods(http.MethodDelete)
 
-	mux.HandleFunc(apimodel.PersonAbsenceRecuring, auth.CheckAuthentication(getAbsenceRecurring)).Methods(http.MethodGet)
-	mux.HandleFunc(apimodel.PersonAbsenceRecuring, auth.CheckAuthentication(addAbsenceRecurring)).Methods(http.MethodPost)
-	mux.HandleFunc(apimodel.PersonAbsenceRecuring, auth.CheckAuthentication(deleteAbsenceRecurring)).Methods(http.MethodDelete)
+	mux.HandleFunc(apimodel.PersonAbsenceRecuring, middleware.CheckAuthentication(getAbsenceRecurring)).Methods(http.MethodGet)
+	mux.HandleFunc(apimodel.PersonAbsenceRecuring, middleware.CheckAuthentication(addAbsenceRecurring)).Methods(http.MethodPost)
+	mux.HandleFunc(apimodel.PersonAbsenceRecuring, middleware.CheckAuthentication(deleteAbsenceRecurring)).Methods(http.MethodDelete)
 }
 
 // @Summary		Get Absence

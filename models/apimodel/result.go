@@ -2,6 +2,7 @@ package apimodel
 
 type Result struct {
 	Result string
+	Error  string
 }
 
 type ProblemDetails struct {

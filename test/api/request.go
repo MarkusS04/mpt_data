@@ -3,6 +3,7 @@ package api_test
 import (
 	"bytes"
 	"encoding/json"
+	"mpt_data/api/middleware"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,12 +31,14 @@ func DoRequest(t *testing.T, reqData RequestData) *httptest.ResponseRecorder {
 		t.Fatal(err)
 	}
 
-	// Create a ResponseRecorder to record the response
+	// rollback flag to true
+	req = req.WithContext(middleware.SetRollback(req.Context(), true))
 	rr := httptest.NewRecorder()
 
-	mux := mux.NewRouter()
-	mux.HandleFunc(reqData.Path, reqData.Router)
-	mux.ServeHTTP(rr, req)
+	router := mux.NewRouter()
+	router.Use(middleware.TransactionMiddleware)
+	router.HandleFunc(reqData.Path, reqData.Router)
+	router.ServeHTTP(rr, req)
 
 	return rr
 }

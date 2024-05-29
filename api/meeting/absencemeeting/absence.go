@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"mpt_data/api/apihelper"
 	api_helper "mpt_data/api/apihelper"
-	"mpt_data/api/auth"
+	"mpt_data/api/middleware"
 	"mpt_data/database/absence"
 	"mpt_data/helper"
 	apiModel "mpt_data/models/apimodel"
@@ -19,9 +19,9 @@ const packageName = "api.meeting.absence"
 
 // RegisterRoutes adds all routes to a mux.Router
 func RegisterRoutes(mux *mux.Router) {
-	mux.HandleFunc(apiModel.MeetingAbsence, auth.CheckAuthentication(getAbsence)).Methods(http.MethodGet)
-	mux.HandleFunc(apiModel.MeetingAbsence, auth.CheckAuthentication(addAbsence)).Methods(http.MethodPost)
-	mux.HandleFunc(apiModel.MeetingAbsence, auth.CheckAuthentication(deleteAbsence)).Methods(http.MethodDelete)
+	mux.HandleFunc(apiModel.MeetingAbsence, middleware.CheckAuthentication(getAbsence)).Methods(http.MethodGet)
+	mux.HandleFunc(apiModel.MeetingAbsence, middleware.CheckAuthentication(addAbsence)).Methods(http.MethodPost)
+	mux.HandleFunc(apiModel.MeetingAbsence, middleware.CheckAuthentication(deleteAbsence)).Methods(http.MethodDelete)
 }
 
 // @Summary		Get Absence

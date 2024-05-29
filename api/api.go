@@ -1,3 +1,4 @@
+// Package api provides function to prepare the http mux server
 package api
 
 import (
@@ -5,6 +6,7 @@ import (
 	"mpt_data/api/auth"
 	"mpt_data/api/meeting"
 	"mpt_data/api/meeting/absencemeeting"
+	"mpt_data/api/middleware"
 	"mpt_data/api/person"
 	"mpt_data/api/person/absenceperson"
 	"mpt_data/api/plan"
@@ -16,6 +18,7 @@ import (
 	"github.com/rs/cors"
 )
 
+// PrepareServer creaes a new mux-Router, registers all Routes and adds a corsHandler
 func PrepareServer() http.Handler {
 	mux := mux.NewRouter()
 	registerRoutes(mux)
@@ -23,6 +26,7 @@ func PrepareServer() http.Handler {
 }
 
 func registerRoutes(mux *mux.Router) {
+	mux.Use(middleware.TransactionMiddleware)
 	if config.Config.API.UseSwagger {
 		fmt.Println("swagger is running")
 		initSwagger(mux)

@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	api_helper "mpt_data/api/apihelper"
+	"mpt_data/api/middleware"
 	"mpt_data/database/auth"
 	apiModel "mpt_data/models/apimodel"
 
@@ -16,7 +17,7 @@ const packageName = "api.auth"
 // RegisterRoutes adds all routes to a mux.Router
 func RegisterRoutes(mux *mux.Router) {
 	mux.HandleFunc(apiModel.LoginHref, login).Methods(http.MethodPost)
-	mux.HandleFunc(apiModel.UserChangePWHref, CheckAuthentication(changePW)).Methods(http.MethodPost)
+	mux.HandleFunc(apiModel.UserChangePWHref, middleware.CheckAuthentication(changePW)).Methods(http.MethodPost)
 }
 
 // @Summary		Login

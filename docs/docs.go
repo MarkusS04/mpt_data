@@ -908,6 +908,15 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Data for Person",
+                        "name": "Person",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbmodel.Person"
+                        }
                     }
                 ],
                 "responses": {
@@ -1894,6 +1903,9 @@ const docTemplate = `{
         "apimodel.Result": {
             "type": "object",
             "properties": {
+                "error": {
+                    "type": "string"
+                },
                 "result": {
                     "type": "string"
                 }

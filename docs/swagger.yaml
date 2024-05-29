@@ -16,6 +16,8 @@ definitions:
     type: object
   apimodel.Result:
     properties:
+      error:
+        type: string
       result:
         type: string
     type: object
@@ -715,6 +717,12 @@ paths:
         name: id
         required: true
         type: integer
+      - description: Data for Person
+        in: body
+        name: Person
+        required: true
+        schema:
+          $ref: '#/definitions/dbmodel.Person'
       produces:
       - application/json
       responses:

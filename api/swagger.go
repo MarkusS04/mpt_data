@@ -1,3 +1,4 @@
+// Package api provides function to prepare the http mux server
 package api
 
 import (

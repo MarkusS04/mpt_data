@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	api_helper "mpt_data/api/apihelper"
-	"mpt_data/api/auth"
+	"mpt_data/api/middleware"
 	"mpt_data/database"
 	"mpt_data/database/task"
 	"mpt_data/helper"
@@ -19,17 +19,17 @@ const packageName = "api.task"
 
 // RegisterRoutes adds all routes to a mux.Router
 func RegisterRoutes(mux *mux.Router) {
-	mux.HandleFunc(apiModel.TaskHref, auth.CheckAuthentication(getTask)).Methods(http.MethodGet)
-	mux.HandleFunc(apiModel.TaskHref, auth.CheckAuthentication(addTask)).Methods(http.MethodPost)
-	mux.HandleFunc(apiModel.TaskHrefWithID, auth.CheckAuthentication(deleteTask)).Methods(http.MethodDelete)
-	mux.HandleFunc(apiModel.TaskHrefWithID, auth.CheckAuthentication(updateTask)).Methods(http.MethodPut)
+	mux.HandleFunc(apiModel.TaskHref, middleware.CheckAuthentication(getTask)).Methods(http.MethodGet)
+	mux.HandleFunc(apiModel.TaskHref, middleware.CheckAuthentication(addTask)).Methods(http.MethodPost)
+	mux.HandleFunc(apiModel.TaskHrefWithID, middleware.CheckAuthentication(deleteTask)).Methods(http.MethodDelete)
+	mux.HandleFunc(apiModel.TaskHrefWithID, middleware.CheckAuthentication(updateTask)).Methods(http.MethodPut)
 
-	mux.HandleFunc(apiModel.TaskDetailHref, auth.CheckAuthentication(addTaskDetail)).Methods(http.MethodPost)
-	mux.HandleFunc(apiModel.TaskDetailHrefWithID, auth.CheckAuthentication(deleteTaskDetail)).Methods(http.MethodDelete)
-	mux.HandleFunc(apiModel.TaskDetailHrefWithID, auth.CheckAuthentication(updateTaskDetail)).Methods(http.MethodPut)
+	mux.HandleFunc(apiModel.TaskDetailHref, middleware.CheckAuthentication(addTaskDetail)).Methods(http.MethodPost)
+	mux.HandleFunc(apiModel.TaskDetailHrefWithID, middleware.CheckAuthentication(deleteTaskDetail)).Methods(http.MethodDelete)
+	mux.HandleFunc(apiModel.TaskDetailHrefWithID, middleware.CheckAuthentication(updateTaskDetail)).Methods(http.MethodPut)
 
-	mux.HandleFunc(apiModel.TaskHref, auth.CheckAuthentication(updateOrderTask)).Methods(http.MethodPut)
-	mux.HandleFunc(apiModel.TaskDetailHref, auth.CheckAuthentication(updateOrderTaskDetail)).Methods(http.MethodPut)
+	mux.HandleFunc(apiModel.TaskHref, middleware.CheckAuthentication(updateOrderTask)).Methods(http.MethodPut)
+	mux.HandleFunc(apiModel.TaskDetailHref, middleware.CheckAuthentication(updateOrderTaskDetail)).Methods(http.MethodPut)
 }
 
 // @Summary		Get Task
