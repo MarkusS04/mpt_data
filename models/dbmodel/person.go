@@ -1,13 +1,16 @@
+// Package dbmodel provides all structs for databse ORM
 package dbmodel
 
 import (
 	"encoding/json"
 	"mpt_data/helper"
+	"mpt_data/helper/errors"
 
 	"gorm.io/gorm"
 )
 
 // TODO: possibility to decide between people with same name
+// Person stores persons data
 type Person struct {
 	gorm.Model `json:"-"`
 	ID         uint
@@ -16,13 +19,29 @@ type Person struct {
 }
 
 func (p *Person) encrypt() error {
-	givenName, err := helper.EncryptData([]byte(p.GivenName))
+	givenName, err := helper.EncryptDataToBase64(p.GivenName)
+	if err != nil {
+		return err
+	}
+	p.GivenName = givenName
+
+	lastName, err := helper.EncryptDataToBase64(p.LastName)
+	if err != nil {
+		return err
+	}
+	p.LastName = lastName
+
+	return nil
+}
+
+func (p *Person) decrypt() error {
+	givenName, err := helper.DecryptDataFromBase64(p.GivenName)
 	if err != nil {
 		return err
 	}
 	p.GivenName = string(givenName)
 
-	lastName, err := helper.EncryptData([]byte(p.LastName))
+	lastName, err := helper.DecryptDataFromBase64(p.LastName)
 	if err != nil {
 		return err
 	}
@@ -33,29 +52,33 @@ func (p *Person) encrypt() error {
 
 // BeforeCreate encryptes data in Database
 func (p *Person) BeforeCreate(_ *gorm.DB) (err error) {
+	if p.GivenName == "" || p.LastName == "" {
+		return errors.ErrPersonMissingName
+	}
 	return p.encrypt()
+}
+
+// AfterCreate decryptes data after creation
+func (p *Person) AfterCreate(_ *gorm.DB) (err error) {
+	return p.decrypt()
 }
 
 // BeforeUpdate encryptes data in Database
 func (p *Person) BeforeUpdate(_ *gorm.DB) (err error) {
+	if p.GivenName == "" || p.LastName == "" {
+		return errors.ErrPersonMissingName
+	}
 	return p.encrypt()
+}
+
+// AfterUpdate decryptes data after creation
+func (p *Person) AfterUpdate(_ *gorm.DB) (err error) {
+	return p.decrypt()
 }
 
 // AfterFind decryptes data from Database
 func (p *Person) AfterFind(_ *gorm.DB) (err error) {
-	givenName, err := helper.DecryptData([]byte(p.GivenName))
-	if err != nil {
-		return err
-	}
-	p.GivenName = string(givenName)
-
-	lastName, err := helper.DecryptData([]byte(p.LastName))
-	if err != nil {
-		return err
-	}
-	p.LastName = string(lastName)
-
-	return
+	return p.decrypt()
 }
 
 type PersonAbsence struct {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	api_helper "mpt_data/api/apihelper"
 	"mpt_data/api/auth"
+	"mpt_data/database"
 	"mpt_data/database/person"
 	"mpt_data/helper"
 	apiModel "mpt_data/models/apimodel"
@@ -29,19 +30,19 @@ func RegisterRoutes(mux *mux.Router) {
 	mux.HandleFunc(apiModel.PersonHrefTask, auth.CheckAuthentication(deleteTaskFromPerson)).Methods(http.MethodDelete)
 }
 
-// @Summary		Get Person
-// @Description	Get all Persons
-// @Tags			Person
-// @Accept			json
-// @Produce		json
-// @Security		ApiKeyAuth
-// @Success		200	{array}	dbModel.Person
-// @Failure		400
-// @Failure		401
-// @Router			/person [GET]
+//	@Summary		Get Person
+//	@Description	Get all Persons
+//	@Tags			Person
+//	@Accept			json
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Success		200	{array}	dbModel.Person
+//	@Failure		400
+//	@Failure		401
+//	@Router			/person [GET]
 func getPerson(w http.ResponseWriter, _ *http.Request) {
 	const funcName = packageName + ".getPerson"
-	persons, err := person.GetPerson()
+	persons, err := person.GetPerson(database.DB)
 	if err != nil {
 		api_helper.InternalError(w, funcName, err.Error())
 		return
@@ -49,17 +50,17 @@ func getPerson(w http.ResponseWriter, _ *http.Request) {
 	api_helper.ResponseJSON(w, funcName, persons)
 }
 
-// @Summary		Add Person
-// @Description	Add Person
-// @Tags			Person
-// @Accept			json
-// @Produce		json
-// @Param			Person	body	dbModel.Person	true	"Person"
-// @Security		ApiKeyAuth
-// @Success		201	{object}	dbModel.Person
-// @Failure		400	{object}	apiModel.Result
-// @Failure		401
-// @Router			/person [POST]
+//	@Summary		Add Person
+//	@Description	Add Person
+//	@Tags			Person
+//	@Accept			json
+//	@Produce		json
+//	@Param			Person	body	dbModel.Person	true	"Person"
+//	@Security		ApiKeyAuth
+//	@Success		201	{object}	dbModel.Person
+//	@Failure		400	{object}	apiModel.Result
+//	@Failure		401
+//	@Router			/person [POST]
 func addPerson(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".addPerson"
 	var personIn dbModel.Person
@@ -68,7 +69,11 @@ func addPerson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := person.AddPerson(&personIn); err != nil {
+	tx := database.DB.Begin()
+	defer tx.Commit()
+
+	if err := person.AddPerson(tx, &personIn); err != nil {
+		tx.Rollback()
 		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to store data"}, err)
 		return
 	}
@@ -106,7 +111,11 @@ func deletePerson(w http.ResponseWriter, r *http.Request) {
 	persons := dbModel.Person{}
 	persons.ID = uint(*id)
 
-	if err := person.DeletePerson(persons); err != nil {
+	tx := database.DB.Begin()
+	defer tx.Commit()
+
+	if err := person.DeletePerson(tx, persons); err != nil {
+		tx.Rollback()
 		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to delete person"}, err)
 		return
 	}
@@ -121,10 +130,11 @@ func deletePerson(w http.ResponseWriter, r *http.Request) {
 //	@Tags			Person
 //	@Accept			json
 //	@Produce		json
-//	@Param			id	path	int	true	"ID of Person"
+//	@Param			id		path	int				true	"ID of Person"
+//	@Param			Person	body	dbmodel.Person	true	"Data for Person"
 //	@Security		ApiKeyAuth
 //	@Success		200
-//	@Failure		400 {object} apiModel.Result
+//	@Failure		400	{object}	apiModel.Result
 //	@Failure		401
 //	@Router			/person/{id} [PUT]
 func updatePerson(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +158,11 @@ func updatePerson(w http.ResponseWriter, r *http.Request) {
 	}
 	personIn.ID = uint(*id)
 
-	if err := person.UpdatePerson(personIn); err != nil {
+	tx := database.DB.Begin()
+	defer tx.Commit()
+
+	if err := person.UpdatePerson(tx, &personIn); err != nil {
+		tx.Rollback()
 		api_helper.InternalError(w, funcName, err.Error())
 		return
 	}

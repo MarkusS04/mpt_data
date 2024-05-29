@@ -1,3 +1,4 @@
+// Package errors provides all errors used and created by mpt_data
 package errors
 
 import (
@@ -6,6 +7,12 @@ import (
 
 var ErrUserAlreadyExists = errors.New("user already exists")
 
+// Person-Model errors
+var (
+	ErrPersonMissingName = errors.New("givenname or lastname missing")
+)
+
+// Meeting-Model errors
 var (
 	ErrNotAllMeetingsCreated = errors.New("not all given meetings written to DB")
 	ErrMeetingNotDeleted     = errors.New("meeting not deleted")
