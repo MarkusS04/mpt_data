@@ -6,6 +6,7 @@ import (
 	"mpt_data/database/logging"
 	"mpt_data/helper/errors"
 	"mpt_data/models/apimodel"
+	"mpt_data/models/dbmodel"
 	dbModel "mpt_data/models/dbmodel"
 	generalmodel "mpt_data/models/general"
 	"time"
@@ -68,7 +69,7 @@ func CreatePlanData(db *gorm.DB, period generalmodel.Period) ([]dbModel.Plan, er
 	var meetings []dbModel.Meeting
 	if err :=
 		tx.Preload("Tag").Where("date between ? and ?", period.StartDate, period.EndDate).
-			Find(&meetings).Error; err != nil {
+			Order("date").Find(&meetings).Error; err != nil {
 		logging.LogError(funcName, "errorr loading meetings: "+err.Error())
 		return nil, err
 	}
@@ -82,6 +83,14 @@ func CreatePlanData(db *gorm.DB, period generalmodel.Period) ([]dbModel.Plan, er
 	var planIDs []uint
 	for _, meeting := range meetings {
 		if meeting.Tag.ID != 0 {
+			var ids []uint
+			if tx.Table("plans").Where("meeting_id = ?", meeting.ID).Select("id").Find(&ids); len(ids) != 0 {
+				continue
+			}
+			if err := tx.Create(&dbmodel.Plan{MeetingID: meeting.ID}).Error; err != nil {
+				logging.LogError(funcName, "error create plan: "+err.Error())
+				tx.RollbackTo("beforePlanCreation")
+			}
 			continue
 		}
 		for _, task := range tasks {
@@ -179,10 +188,12 @@ func GetAllPersonAvailable(db *gorm.DB, plan dbModel.Plan) (person apimodel.Peop
 		return apimodel.People{}, err
 	}
 
-	if err =
-		db.Where("id = ?", plan.PersonID).
-			First(&person.Assigned).Error; err != nil {
-		return apimodel.People{}, err
+	if plan.PersonID != 0 {
+		if err =
+			db.Where("id = ?", plan.PersonID).
+				First(&person.Assigned).Error; err != nil {
+			return apimodel.People{}, err
+		}
 	}
 
 	return person, nil

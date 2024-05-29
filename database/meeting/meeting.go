@@ -47,7 +47,10 @@ func CreateTag(db *gorm.DB, meetingID uint, tag dbModel.Tag) error {
 		return err
 	}
 
-	result := db.Model(&dbModel.Meeting{}).Where("id = ?", meetingID).Where("tag_id is null").Update("tag_id", tag.ID)
+	result := db.Model(&dbModel.Meeting{}).
+		Where("id = ?", meetingID).
+		Where("tag_id is null or tag_id = 0").
+		Update("tag_id", tag.ID)
 	if result.Error != nil {
 		return result.Error
 	} else if result.RowsAffected == 0 {
