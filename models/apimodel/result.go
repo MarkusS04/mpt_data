@@ -1,8 +1,10 @@
 package apimodel
 
 type Result struct {
-	Result string
-	Error  string
+	Result     string
+	Error      string
+	Data       interface{}
+	StatusCode int
 }
 
 type ProblemDetails struct {

@@ -3,7 +3,6 @@ package plan
 
 import (
 	"fmt"
-	"mpt_data/database"
 	"mpt_data/database/logging"
 	"mpt_data/database/task"
 	"mpt_data/helper/config"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-pdf/fpdf"
+	"gorm.io/gorm"
 )
 
 type (
@@ -48,11 +48,11 @@ type (
 )
 
 // GetOrCreatePDF generates a PDF file based on the provided period.
-func GetOrCreatePDF(period generalmodel.Period) (path string, err error) {
+func GetOrCreatePDF(db *gorm.DB, period generalmodel.Period) (path string, err error) {
 	const funcName = packageName + ".GetOrCreatePDF"
 	var file dbModel.PDF
 	if err :=
-		database.DB.
+		db.
 			Where("start_date = ?", period.StartDate).
 			Where("end_date = ?", period.EndDate).
 			First(&file).Error; err != nil {
@@ -65,7 +65,7 @@ func GetOrCreatePDF(period generalmodel.Period) (path string, err error) {
 
 	headline := pdf.printDateTitle(period)
 
-	pdfData, err := getPdfData(period)
+	pdfData, err := getPdfData(db, period)
 	if err != nil {
 		logging.LogError(funcName, err.Error())
 		return "", err
@@ -82,13 +82,13 @@ func GetOrCreatePDF(period generalmodel.Period) (path string, err error) {
 	}
 
 	if file.ID == 0 {
-		database.DB.Create(&dbModel.PDF{Name: pdfName, FilePath: pdfFile, Period: period, DataChanged: false})
+		db.Create(&dbModel.PDF{Name: pdfName, FilePath: pdfFile, Period: period, DataChanged: false})
 	} else {
 		file.DataChanged = false
 		file.FilePath = pdfFile
 		file.Name = pdfName
 
-		database.DB.Save(&file)
+		db.Save(&file)
 	}
 
 	return pdfFile, nil
@@ -120,8 +120,8 @@ func getPDF() *pdf {
 }
 
 // getPdfData retrieves data needed for PDF generation.
-func getPdfData(period generalmodel.Period) (data pdfData, err error) {
-	if data.tasks, err = task.GetTask(); err != nil {
+func getPdfData(db *gorm.DB, period generalmodel.Period) (data pdfData, err error) {
+	if data.tasks, err = task.GetTask(db); err != nil {
 		return data, err
 	}
 

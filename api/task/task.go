@@ -1,3 +1,4 @@
+// Package task provides api routes to manipulate tasks
 package task
 
 import (
@@ -6,9 +7,11 @@ import (
 	api_helper "mpt_data/api/apihelper"
 	"mpt_data/api/middleware"
 	"mpt_data/database"
+	"mpt_data/database/logging"
 	"mpt_data/database/task"
 	"mpt_data/helper"
-	apiModel "mpt_data/models/apimodel"
+	"mpt_data/helper/errors"
+	"mpt_data/models/apimodel"
 	dbModel "mpt_data/models/dbmodel"
 	"net/http"
 
@@ -19,17 +22,17 @@ const packageName = "api.task"
 
 // RegisterRoutes adds all routes to a mux.Router
 func RegisterRoutes(mux *mux.Router) {
-	mux.HandleFunc(apiModel.TaskHref, middleware.CheckAuthentication(getTask)).Methods(http.MethodGet)
-	mux.HandleFunc(apiModel.TaskHref, middleware.CheckAuthentication(addTask)).Methods(http.MethodPost)
-	mux.HandleFunc(apiModel.TaskHrefWithID, middleware.CheckAuthentication(deleteTask)).Methods(http.MethodDelete)
-	mux.HandleFunc(apiModel.TaskHrefWithID, middleware.CheckAuthentication(updateTask)).Methods(http.MethodPut)
+	mux.HandleFunc(apimodel.TaskHref, middleware.CheckAuthentication(getTask)).Methods(http.MethodGet)
+	mux.HandleFunc(apimodel.TaskHref, middleware.CheckAuthentication(addTask)).Methods(http.MethodPost)
+	mux.HandleFunc(apimodel.TaskHrefWithID, middleware.CheckAuthentication(deleteTask)).Methods(http.MethodDelete)
+	mux.HandleFunc(apimodel.TaskHrefWithID, middleware.CheckAuthentication(updateTask)).Methods(http.MethodPut)
 
-	mux.HandleFunc(apiModel.TaskDetailHref, middleware.CheckAuthentication(addTaskDetail)).Methods(http.MethodPost)
-	mux.HandleFunc(apiModel.TaskDetailHrefWithID, middleware.CheckAuthentication(deleteTaskDetail)).Methods(http.MethodDelete)
-	mux.HandleFunc(apiModel.TaskDetailHrefWithID, middleware.CheckAuthentication(updateTaskDetail)).Methods(http.MethodPut)
+	mux.HandleFunc(apimodel.TaskDetailHref, middleware.CheckAuthentication(addTaskDetail)).Methods(http.MethodPost)
+	mux.HandleFunc(apimodel.TaskDetailHrefWithID, middleware.CheckAuthentication(deleteTaskDetail)).Methods(http.MethodDelete)
+	mux.HandleFunc(apimodel.TaskDetailHrefWithID, middleware.CheckAuthentication(updateTaskDetail)).Methods(http.MethodPut)
 
-	mux.HandleFunc(apiModel.TaskHref, middleware.CheckAuthentication(updateOrderTask)).Methods(http.MethodPut)
-	mux.HandleFunc(apiModel.TaskDetailHref, middleware.CheckAuthentication(updateOrderTaskDetail)).Methods(http.MethodPut)
+	mux.HandleFunc(apimodel.TaskHref, middleware.CheckAuthentication(updateOrderTask)).Methods(http.MethodPut)
+	mux.HandleFunc(apimodel.TaskDetailHref, middleware.CheckAuthentication(updateOrderTaskDetail)).Methods(http.MethodPut)
 }
 
 // @Summary		Get Task
@@ -42,9 +45,11 @@ func RegisterRoutes(mux *mux.Router) {
 // @Failure		400	{object}	apiModel.Result
 // @Failure		401
 // @Router			/task [GET]
-func getTask(w http.ResponseWriter, _ *http.Request) {
+func getTask(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".getTask"
-	tasks, err := task.GetTask()
+
+	tx := middleware.GetTx(r.Context())
+	tasks, err := task.GetTask(tx)
 	if err != nil {
 		api_helper.InternalError(w, funcName, err.Error())
 		return
@@ -69,16 +74,32 @@ func addTask(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".addTask"
 	var taskIn dbModel.Task
 	if err := json.NewDecoder(r.Body).Decode(&taskIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{
+			Error:  "failed to decode request body",
+			Result: "Task not added"}, err)
 		return
 	}
 
-	if err := task.AddTask(&taskIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to add task"}, err)
-		return
+	tx := middleware.GetTx(r.Context())
+	err := task.AddTask(tx, &taskIn)
+	switch err {
+	case nil:
+		api_helper.ResponseJSON(w, funcName, apimodel.Result{
+			Data:       taskIn,
+			Result:     "Task succesfull created",
+			StatusCode: 201,
+		}, http.StatusCreated)
+		break
+	case errors.ErrTaskAlreadyExists, errors.ErrTaskDescrNotSet, errors.ErrTaskDetailAlreadyExists:
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{
+			Result: "failed to add task",
+			Error:  err.Error(),
+		}, err)
+		break
+	default:
+		api_helper.InternalError(w, funcName, err.Error())
+		break
 	}
-
-	api_helper.ResponseJSON(w, funcName, taskIn, http.StatusCreated)
 }
 
 // @Summary		Delete Task
@@ -97,15 +118,24 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "invalid id"}, err)
+		api_helper.ResponseBadRequest(w, funcName,
+			apimodel.Result{
+				Result: "failed to delete task",
+				Error:  "id not valid"}, err)
 		return
 	}
 
 	tasks := dbModel.Task{}
 	tasks.ID = uint(*id)
 
-	if err := task.DeleteTask(tasks); err != nil {
-		api_helper.InternalError(w, funcName, fmt.Sprint("failed to delete task", err.Error()))
+	tx := middleware.GetTx(r.Context())
+	if err := task.DeleteTask(tx, &tasks); err != nil {
+		logging.LogError(funcName, err.Error())
+		api_helper.ResponseJSON(w, funcName,
+			apimodel.Result{
+				Result: "failed to delete task",
+				Error:  "Internal Server Error",
+			}, http.StatusInternalServerError)
 		return
 	}
 
@@ -129,23 +159,39 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "invalid id"}, err)
+		api_helper.ResponseBadRequest(w, funcName,
+			apimodel.Result{
+				Result: "task not updated",
+				Error:  "id no valid"}, err)
 		return
 	}
 
 	var taskIn dbModel.Task
 	if err := json.NewDecoder(r.Body).Decode(&taskIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{
+			Result: "task not updated",
+			Error:  "failed to decode request body"}, err)
 		return
 	}
 	taskIn.ID = uint(*id)
 
-	if err := task.UpdateTask(taskIn); err != nil {
+	tx := middleware.GetTx(r.Context())
+	err = task.UpdateTask(tx, taskIn)
+	switch err {
+	case nil:
+		api_helper.ResponseJSON(w, funcName, apimodel.Result{Result: "task sucessful updaed", Data: taskIn}, http.StatusOK)
+		break
+	case errors.ErrTaskDescrNotSet:
+		api_helper.ResponseBadRequest(
+			w, funcName, apimodel.Result{
+				Result: "task not updated",
+				Error:  err.Error(),
+			}, err)
+		break
+	default:
 		api_helper.InternalError(w, funcName, fmt.Sprint("failed to update task", err.Error()))
-		return
+		break
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 // addTaskDetail adds a new detail to a task
@@ -166,24 +212,45 @@ func addTaskDetail(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".addTaskDetail"
 	var taskIn dbModel.TaskDetail
 	if err := json.NewDecoder(r.Body).Decode(&taskIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		api_helper.ResponseBadRequest(w, funcName,
+			apimodel.Result{
+				Result: "taskdetail not created",
+				Error:  "failed to decode request body"}, err)
 		return
 	}
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "invalid id"}, err)
+		api_helper.ResponseBadRequest(w, funcName,
+			apimodel.Result{
+				Result: "taskdetail not created",
+				Error:  "id not valid"}, err)
 		return
 	}
 
 	taskIn.TaskID = uint(*id)
 
-	if err := task.AddTaskDetail(&taskIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to add task"}, err)
-		return
+	err = task.AddTaskDetail(middleware.GetTx(r.Context()), &taskIn)
+	switch err {
+	case nil:
+		api_helper.ResponseJSON(w, funcName, apimodel.Result{
+			Result:     "Taskdetail succesfull created",
+			StatusCode: http.StatusCreated,
+		}, http.StatusCreated)
+		break
+	case errors.ErrTaskDetailAlreadyExists, errors.ErrTaskDescrNotSet:
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{
+			Result: "taskdetail not created",
+			Error:  err.Error()}, err)
+		break
+	default:
+		api_helper.ResponseJSON(w, funcName, apimodel.Result{
+			Result:     "taskdetail not created",
+			Error:      "Internal Server Error",
+			StatusCode: http.StatusInternalServerError,
+		}, http.StatusInternalServerError)
+		break
 	}
-
-	api_helper.ResponseJSON(w, funcName, taskIn, http.StatusCreated)
 }
 
 // @Summary		Delete Detail
@@ -203,25 +270,52 @@ func deleteTaskDetail(w http.ResponseWriter, r *http.Request) {
 	var taskIn dbModel.TaskDetail
 	idTask, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *idTask <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "invalid id"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{
+			Result: "failed to delete taskdetail",
+			Error:  "id not valid"}, err)
 		return
 	}
 
 	idDetail, err := helper.ExtractIntFromURL(r, "detailId")
 	if err != nil || *idDetail <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "invalid id"}, err)
+		api_helper.ResponseBadRequest(w, funcName,
+			apimodel.Result{
+				Result: "failed to delete taskdetail",
+				Error:  "id not valid"}, err)
 		return
 	}
 
 	taskIn.TaskID = uint(*idTask)
 	taskIn.ID = uint(*idDetail)
 
-	if err := task.DeleteTaskDetail(taskIn); err != nil {
-		api_helper.InternalError(w, funcName, fmt.Sprint("failed to delete task:", err.Error()))
-		return
+	err = task.DeleteTaskDetail(middleware.GetTx(r.Context()), taskIn)
+	switch err {
+	case nil:
+		api_helper.ResponseJSON(w, funcName,
+			apimodel.Result{
+				Result:     "taskdetail succesfull deleted",
+				StatusCode: http.StatusOK,
+			})
+		break
+	case errors.ErrTaskDetailAlreadyExists, errors.ErrTaskDescrNotSet:
+		api_helper.ResponseJSON(w, funcName,
+			apimodel.Result{
+				Result:     "failed to delete taskdetail",
+				Error:      err.Error(),
+				StatusCode: http.StatusBadRequest,
+			},
+			http.StatusBadRequest)
+		break
+	default:
+		logging.LogError(funcName, err.Error())
+		api_helper.ResponseJSON(w, funcName,
+			apimodel.Result{
+				Result:     "failed to delete taskdetail",
+				StatusCode: http.StatusInternalServerError,
+			},
+			http.StatusInternalServerError)
+		break
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 // @Summary		Update TaskDetail
@@ -242,30 +336,40 @@ func updateTaskDetail(w http.ResponseWriter, r *http.Request) {
 
 	idTask, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *idTask <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "invalid id"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "invalid id"}, err)
 		return
 	}
 
 	idDetail, err := helper.ExtractIntFromURL(r, "detailId")
 	if err != nil || *idDetail <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "invalid id"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "invalid id"}, err)
 		return
 	}
 
 	var taskIn dbModel.TaskDetail
 	if err := json.NewDecoder(r.Body).Decode(&taskIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "failed to decode request body"}, err)
 		return
 	}
 	taskIn.TaskID = uint(*idTask)
 	taskIn.ID = uint(*idDetail)
 
-	if err := task.UpdateTaskDetail(taskIn); err != nil {
+	err = task.UpdateTaskDetail(middleware.GetTx(r.Context()), taskIn)
+	switch err {
+	case nil:
+		w.WriteHeader(http.StatusOK)
+		break
+	case errors.ErrTaskDescrNotSet:
+		api_helper.ResponseJSON(w, funcName, apimodel.Result{
+			Result:     "failed to update task",
+			Error:      err.Error(),
+			StatusCode: http.StatusBadRequest,
+		}, http.StatusBadRequest)
+		break
+	default:
 		api_helper.InternalError(w, funcName, fmt.Sprint("failed to update task", err.Error()))
-		return
+		break
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 // @Summary		Update Task Order
@@ -282,9 +386,9 @@ func updateTaskDetail(w http.ResponseWriter, r *http.Request) {
 func updateOrderTask(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".updateOrderTask"
 
-	var data []apiModel.OrderTask
+	var data []apimodel.OrderTask
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "failed to decode request body"}, err)
 		return
 	}
 
@@ -292,7 +396,7 @@ func updateOrderTask(w http.ResponseWriter, r *http.Request) {
 	defer tx.Commit()
 	if err := task.OrderTask(tx, data); err != nil {
 		tx.Rollback()
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "could not update order of task"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "could not update order of task"}, err)
 		return
 	}
 
@@ -316,13 +420,13 @@ func updateOrderTaskDetail(w http.ResponseWriter, r *http.Request) {
 
 	idTask, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *idTask <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "invalid id"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "invalid id"}, err)
 		return
 	}
 
-	var data []apiModel.OrderTaskDetail
+	var data []apimodel.OrderTaskDetail
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "failed to decode request body"}, err)
 		return
 	}
 
@@ -330,7 +434,7 @@ func updateOrderTaskDetail(w http.ResponseWriter, r *http.Request) {
 	defer tx.Commit()
 	if err := task.OrderTaskDetail(tx, data, uint(*idTask)); err != nil {
 		tx.Rollback()
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "could not update order of task"}, err)
+		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "could not update order of task"}, err)
 		return
 	}
 

@@ -19,6 +19,13 @@ var (
 	ErrMeetingTagAlreadySet  = errors.New("tag for meeting is already set")
 )
 
+// Task(-detail) errors
+var (
+	ErrTaskAlreadyExists       = errors.New("task with descr already exists")
+	ErrTaskDetailAlreadyExists = errors.New("taskdetail with descr already exists")
+	ErrTaskDescrNotSet         = errors.New("task or taskdetail descr missing")
+)
+
 var (
 	ErrTaskForPersonNotAllowed = errors.New("person is not allowed for task")
 )

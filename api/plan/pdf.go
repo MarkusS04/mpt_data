@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	api_helper "mpt_data/api/apihelper"
+	"mpt_data/api/middleware"
 	"mpt_data/database/plan"
 	generalmodel "mpt_data/models/general"
 	"net/http"
@@ -14,10 +15,11 @@ import (
 
 const packageName = "api.plan"
 
-func getPlanPDF(w http.ResponseWriter, _ *http.Request, startDate time.Time, endDate time.Time) {
+func getPlanPDF(w http.ResponseWriter, r *http.Request, startDate time.Time, endDate time.Time) {
 	const funcName = packageName + ".getPlanPDF"
 
-	path, err := plan.GetOrCreatePDF(generalmodel.Period{StartDate: startDate, EndDate: endDate})
+	tx := middleware.GetTx(r.Context())
+	path, err := plan.GetOrCreatePDF(tx, generalmodel.Period{StartDate: startDate, EndDate: endDate})
 	if err != nil {
 		api_helper.InternalError(w, funcName, err.Error())
 		return
