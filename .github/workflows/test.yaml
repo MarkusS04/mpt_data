@@ -20,21 +20,23 @@ jobs:
 
       - name: Store config
         run: |
-          echo "Database:" > config.yaml
-          echo "  Path: $HOME/apps/mpt_testing_enc" >> config.yaml
-          echo "  EncryptionKey: FpQYpOAXmYTMiRDb33dnyh8OFaHRgWHOTvKxjWTwsCM=" >> config.yaml
-          echo "Log:" >> config.yaml
-          echo "  Path: $HOME/apps/mpt/logs" >> config.yaml
-          echo "  LevelDB: 2 # INFO = 0, WARNING = 1, ERROR = 2" >> config.yaml
-          echo "Api:" >> config.yaml
-          echo "  Port: 9000" >> config.yaml
-          echo "  AuthenticationRequired: true" >> config.yaml
-          echo "  JWTKey: 6z5ZeRU!uW#bD9r^9nF&ijn@j2@!2NMAh^vXSJS$f5^HZTSkvGN%A9xj5qgR8Be9A6Ew$$xzKybe3NTozKJJ6MZAB9JUip9AWDkZgu$i6%gQKojZ%QLQzEbN6N!AWkwz" >> config.yaml
-          echo "PDF:" >> config.yaml
-          echo "  Path: $HOME/apps/mpt/pdf" >> config.yaml
+          cat << EOF > config.yaml
+          Database:
+            Path: $HOME/apps/mpt_testing_enc
+            EncryptionKey: FpQYpOAXmYTMiRDb33dnyh8OFaHRgWHOTvKxjWTwsCM=
+          Log:
+            Path: $HOME/apps/mpt/logs
+            LevelDB: 2 # INFO = 0, WARNING = 1, ERROR = 2
+          Api:
+            Port: 9000
+            AuthenticationRequired: true
+            JWTKey: 6z5ZeRU!uW#bD9r^9nF&ijn@j2@!2NMAh^vXSJS$f5^HZTSkvGN%A9xj5qgR8Be9A6Ew$$xzKybe3NTozKJJ6MZAB9JUip9AWDkZgu$i6%gQKojZ%QLQzEbN6N!AWkwz
+          PDF:
+            Path: $HOME/apps/mpt/pdf
+          EOF
 
       - name: Prepare env
         run: go run test/prep.go
 
       - name: execute Tests
-        run: go test ./...
+        run: GOMAXPROCS=1 go test ./...
