@@ -11,7 +11,6 @@ WORKDIR /app
 
 COPY --from=build /app/bin/mpt /app/mpt
 RUN chmod +x /app/mpt
-COPY --from=build /app/config.yaml /app/config.yaml
 
 EXPOSE 8080
 
