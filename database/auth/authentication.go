@@ -40,7 +40,7 @@ func validateUser(user apiModel.UserLogin) (*dbModel.User, error) {
 	defer db.Rollback()
 
 	userDb := dbModel.User{
-		Username: []byte(user.Username),
+		Username: user.Username,
 	}
 	if err := userDb.Encrypt(); err != nil {
 		return nil, err

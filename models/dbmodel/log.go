@@ -8,6 +8,7 @@ import (
 )
 
 type Log struct {
+	gorm.Model
 	LogLevel  uint
 	Source    string
 	Text      string
@@ -16,12 +17,12 @@ type Log struct {
 
 // BeforeCreate hook for gorm
 func (l *Log) BeforeCreate(_ *gorm.DB) (err error) {
-	source, err := helper.EncryptDataToBase64(l.Source)
+	source, err := helper.EncryptData(l.Source)
 	if err != nil {
 		return err
 	}
 	l.Source = source
-	text, err := helper.EncryptDataToBase64(l.Text)
+	text, err := helper.EncryptData(l.Text)
 	if err != nil {
 		return err
 	}
@@ -31,12 +32,12 @@ func (l *Log) BeforeCreate(_ *gorm.DB) (err error) {
 
 // AfterCreate hook for gorm
 func (l *Log) AfterCreate(_ *gorm.DB) (err error) {
-	source, err := helper.DecryptDataFromBase64(l.Source)
+	source, err := helper.DecryptData(l.Source)
 	if err != nil {
 		return err
 	}
 	l.Source = string(source)
-	text, err := helper.DecryptDataFromBase64(l.Text)
+	text, err := helper.DecryptData(l.Text)
 	if err != nil {
 		return err
 	}
@@ -46,12 +47,12 @@ func (l *Log) AfterCreate(_ *gorm.DB) (err error) {
 
 // AfterFind hook for gorm
 func (l *Log) AfterFind(_ *gorm.DB) (err error) {
-	source, err := helper.DecryptDataFromBase64(l.Source)
+	source, err := helper.DecryptData(l.Source)
 	if err != nil {
 		return err
 	}
 	l.Source = string(source)
-	text, err := helper.DecryptDataFromBase64(l.Text)
+	text, err := helper.DecryptData(l.Text)
 	if err != nil {
 		return err
 	}

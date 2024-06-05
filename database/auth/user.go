@@ -19,7 +19,7 @@ func CreateUser(user apiModel.UserLogin) error {
 		return err
 	}
 
-	dbUser := dbModel.User{Username: []byte(user.Username), Hash: string(hash)}
+	dbUser := dbModel.User{Username: user.Username, Hash: string(hash)}
 	if err := addUser(dbUser); err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func addUser(user dbModel.User) error {
 	db := database.DB.Begin()
 	defer db.Rollback()
 
-	if user.Username == nil || user.Hash == "" {
+	if user.Username == "" || user.Hash == "" {
 		return errors.ErrUserdataNotComplete
 	}
 

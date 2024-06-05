@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 func TestCreateUser(t *testing.T) {
 	user := apiModel.UserLogin{Username: "M_Maier", Password: "TestingPW"}
 	t.Cleanup(func() {
-		username, err := (&(dbModel.User{Username: []byte(user.Username)})).EncryptedUsername()
+		username, err := (&(dbModel.User{Username: user.Username})).EncryptedUsername()
 		if err != nil {
 			t.Skipf("test cleanup failed: %v", err)
 		}
@@ -56,7 +56,7 @@ func TestCreateUser(t *testing.T) {
 	}
 }
 func TestAddUser(t *testing.T) {
-	user := dbModel.User{Username: []byte("M_Maier"), Hash: "Test"}
+	user := dbModel.User{Username: "M_Maier", Hash: "Test"}
 	t.Cleanup(func() {
 		username, err := user.EncryptedUsername()
 		if err != nil {

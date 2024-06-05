@@ -34,8 +34,8 @@ func encrypt(block cipher.Block, iv, data []byte) []byte {
 	return ciphertext
 }
 
-// EncryptData encrypts data based on key stores in Config.Database.EncryptionKey, loaded from config or secret management
-func EncryptData[T ~[]byte | ~string](data T) ([]byte, error) {
+// EncryptData calls EncryptData and then converts output to base64 string
+func EncryptData[T ~[]byte | ~string](data T) (string, error) {
 	var byteData []byte
 
 	switch v := any(data).(type) {
@@ -44,86 +44,73 @@ func EncryptData[T ~[]byte | ~string](data T) ([]byte, error) {
 	case string:
 		byteData = []byte(v)
 	default:
-		return nil, errors.New("unsupported data type")
+		return "", errors.New("unsupported data type")
 	}
 
 	block, err := createCipherBlock()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	iv, err := generateRandomIV(block.BlockSize())
 	if err != nil {
-		return nil, err
-	}
-
-	return encrypt(block, iv, padData(byteData, aes.BlockSize)), nil
-}
-
-// EncryptDataToBase64 calls EncryptData and then converts output to base64 string
-func EncryptDataToBase64[T ~[]byte | ~string](data T) (string, error) {
-	encdata, err := EncryptData(data)
-
-	if err != nil {
 		return "", err
 	}
+
+	encdata := encrypt(block, iv, padData(byteData, aes.BlockSize))
 	return base64.StdEncoding.EncodeToString(encdata), nil
 }
 
-// DecryptData decrypts data based on key stores in Config.Database.EncryptionKey, loaded from config or secret management
-func DecryptData[T ~[]byte | ~string](data T) ([]byte, error) {
-	var byteData []byte
-
-	switch v := any(data).(type) {
-	case []byte:
-		byteData = v
-	case string:
-		byteData = []byte(v)
-	default:
-		return nil, errors.New("unsupported data type")
+// DecryptData decodes base64 string, then calls DecryptData
+func DecryptData(data string) ([]byte, error) {
+	encdata, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return nil, err
 	}
+
 	block, err := aes.NewCipher(config.Config.GetDBEncryptionKey())
 	if err != nil {
 		return nil, err
 	}
 
-	if len(byteData) < aes.BlockSize {
+	if len(encdata) < aes.BlockSize {
 		return nil, errors.New("ciphertext too short")
 	}
 
-	iv := byteData[:aes.BlockSize]
-	byteData = byteData[aes.BlockSize:]
+	iv := encdata[:aes.BlockSize]
+	encdata = encdata[aes.BlockSize:]
 
 	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(byteData, byteData)
+	stream.XORKeyStream(encdata, encdata)
 
-	return unpadData(byteData), nil
+	return unpadData(encdata), nil
 }
 
-// DecryptDataFromBase64 decodes base64 string, then calls DecryptData
-func DecryptDataFromBase64(data string) ([]byte, error) {
-	encdata, err := base64.StdEncoding.DecodeString(data)
-	if err != nil {
-		return nil, err
+// EncryptDataDeterministicToBase64 encrypts data based on key stores in Config.Database.EncryptionKey, loaded from config or secret management, but uses a hash as IV
+func EncryptDataDeterministicToBase64[T ~[]byte | ~string](data T) (string, error) {
+	var byteData []byte
+	switch v := any(data).(type) {
+	case []byte:
+		byteData = v
+	case string:
+		byteData = []byte(v)
+	default:
+		return "", errors.New("unsupported data type")
 	}
-	return DecryptData(encdata)
-}
-
-// EncryptDataDeterministic encrypts data based on key stores in Config.Database.EncryptionKey, loaded from config or secret management, but uses a hash as IV
-func EncryptDataDeterministic(data []byte) ([]byte, error) {
 	block, err := createCipherBlock()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	hash := sha256.Sum256(data)
+	hash := sha256.Sum256(byteData)
 	iv := hash[:block.BlockSize()]
 
-	return encrypt(block, iv, padData(data, aes.BlockSize)), nil
+	enc := encrypt(block, iv, padData(byteData, aes.BlockSize))
+	return base64.StdEncoding.EncodeToString(enc), err
 }
 
-// DecryptDataDeterministic decrypts data based on key stores in Config.Database.EncryptionKey, loaded from config or secret management, but uses a hash as IV
-func DecryptDataDeterministic(data []byte) ([]byte, error) {
+// DecryptDataDeterministicFromBase64 decrypts data based on key stores in Config.Database.EncryptionKey, loaded from config or secret management, but uses a hash as IV
+func DecryptDataDeterministicFromBase64(data string) ([]byte, error) {
 	return DecryptData(data)
 }
 

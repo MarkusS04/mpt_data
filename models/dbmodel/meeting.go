@@ -27,7 +27,7 @@ type Tag struct {
 
 // BeforeCreate hook for gorm
 func (t *Tag) BeforeCreate(_ *gorm.DB) (err error) {
-	tag, err := helper.EncryptDataToBase64(t.Descr)
+	tag, err := helper.EncryptData(t.Descr)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func (t *Tag) BeforeCreate(_ *gorm.DB) (err error) {
 
 // AfterFind hook for gorm
 func (t *Tag) AfterFind(_ *gorm.DB) (err error) {
-	tag, err := helper.DecryptDataFromBase64(t.Descr)
+	tag, err := helper.DecryptData(t.Descr)
 	if err != nil {
 		return err
 	}

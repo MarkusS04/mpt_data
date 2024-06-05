@@ -1,3 +1,4 @@
+// Package dbmodel provides all structs for databse ORM
 package dbmodel
 
 import (
@@ -8,20 +9,14 @@ import (
 
 type User struct {
 	gorm.Model
-	Username []byte `gorm:"not null; uniqueIndex"`
+	Username string `gorm:"not null; uniqueIndex"`
 	Hash     string `gorm:"not null" json:"-"`
 	Role     string `gorm:"not null" json:"-"`
 }
 
 // Encrypt encrypts user data
 func (u *User) Encrypt() error {
-	// hash, err := helper.EncryptData([]byte(u.Hash))
-	// if err != nil {
-	// 	return err
-	// }
-	// u.Hash = string(hash)
-
-	username, err := helper.EncryptDataDeterministic([]byte(u.Username))
+	username, err := helper.EncryptDataDeterministicToBase64([]byte(u.Username))
 	if err != nil {
 		return err
 	}
@@ -31,10 +26,10 @@ func (u *User) Encrypt() error {
 }
 
 // EncryptedUsername returns the encryptedUsername
-func (u *User) EncryptedUsername() ([]byte, error) {
-	username, err := helper.EncryptDataDeterministic(u.Username)
+func (u *User) EncryptedUsername() (string, error) {
+	username, err := helper.EncryptDataDeterministicToBase64(u.Username)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	return username, nil
@@ -57,17 +52,11 @@ func (u *User) AfterFind(_ *gorm.DB) (err error) {
 
 // Decrypt decryptes user data
 func (u *User) Decrypt() (err error) {
-	// hash, err := helper.DecryptData([]byte(u.Hash))
-	// if err != nil {
-	// 	return err
-	// }
-	// u.Hash = string(hash)
-
-	username, err := helper.DecryptDataDeterministic([]byte(u.Username))
+	username, err := helper.DecryptDataDeterministicFromBase64(u.Username)
 	if err != nil {
 		return err
 	}
-	u.Username = username
+	u.Username = string(username)
 
 	return
 }

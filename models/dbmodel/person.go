@@ -19,13 +19,13 @@ type Person struct {
 }
 
 func (p *Person) encrypt() error {
-	givenName, err := helper.EncryptDataToBase64(p.GivenName)
+	givenName, err := helper.EncryptData(p.GivenName)
 	if err != nil {
 		return err
 	}
 	p.GivenName = givenName
 
-	lastName, err := helper.EncryptDataToBase64(p.LastName)
+	lastName, err := helper.EncryptData(p.LastName)
 	if err != nil {
 		return err
 	}
@@ -35,13 +35,13 @@ func (p *Person) encrypt() error {
 }
 
 func (p *Person) decrypt() error {
-	givenName, err := helper.DecryptDataFromBase64(p.GivenName)
+	givenName, err := helper.DecryptData(p.GivenName)
 	if err != nil {
 		return err
 	}
 	p.GivenName = string(givenName)
 
-	lastName, err := helper.DecryptDataFromBase64(p.LastName)
+	lastName, err := helper.DecryptData(p.LastName)
 	if err != nil {
 		return err
 	}

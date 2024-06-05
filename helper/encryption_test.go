@@ -16,7 +16,7 @@ func TestEncryption(t *testing.T) {
 		"Test",
 		func(t *testing.T) {
 			orig := "Test"
-			result, err := EncryptData([]byte(orig))
+			result, err := EncryptData(orig)
 			if err != nil {
 				t.Errorf("got error: %v", err)
 			}

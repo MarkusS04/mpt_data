@@ -35,7 +35,7 @@ func (t *Task) BeforeCreate(db *gorm.DB) (err error) {
 		}
 	}
 
-	descr, err := helper.EncryptDataToBase64(t.Descr)
+	descr, err := helper.EncryptData(t.Descr)
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (t *Task) BeforeCreate(db *gorm.DB) (err error) {
 
 // AfterCreate hook for gorm
 func (t *Task) AfterCreate(_ *gorm.DB) (err error) {
-	descr, err := helper.DecryptDataFromBase64(t.Descr)
+	descr, err := helper.DecryptData(t.Descr)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (t *Task) AfterUpdate(db *gorm.DB) (err error) {
 
 // AfterFind hook for gorm
 func (t *Task) AfterFind(_ *gorm.DB) (err error) {
-	descr, err := helper.DecryptDataFromBase64(t.Descr)
+	descr, err := helper.DecryptData(t.Descr)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (t *TaskDetail) BeforeCreate(db *gorm.DB) (err error) {
 		}
 	}
 
-	descr, err := helper.EncryptDataToBase64(t.Descr)
+	descr, err := helper.EncryptData(t.Descr)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (t *TaskDetail) BeforeCreate(db *gorm.DB) (err error) {
 
 // AfterCreate hook for gorm
 func (t *TaskDetail) AfterCreate(_ *gorm.DB) (err error) {
-	descr, err := helper.DecryptDataFromBase64(t.Descr)
+	descr, err := helper.DecryptData(t.Descr)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (t *TaskDetail) AfterUpdate(db *gorm.DB) (err error) {
 
 // AfterFind hook for gorm
 func (t *TaskDetail) AfterFind(_ *gorm.DB) (err error) {
-	descr, err := helper.DecryptDataFromBase64(t.Descr)
+	descr, err := helper.DecryptData(t.Descr)
 	if err != nil {
 		return err
 	}
