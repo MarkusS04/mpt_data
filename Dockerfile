@@ -9,8 +9,13 @@ FROM debian:latest AS publish
 
 WORKDIR /app
 
+RUN apt update
+RUN apt install ca-certificates -y
+RUN apt clean
+
 COPY --from=build /app/bin/mpt /app/mpt
 RUN chmod +x /app/mpt
+
 
 EXPOSE 8080
 

@@ -15,7 +15,7 @@ type Meeting struct {
 	ID         uint
 	Date       time.Time `gorm:"uniqueIndex" json:"Date"`
 	TagID      uint      `json:"-"`
-	Tag        Tag       `gorm:"ForeignKey:TagID" json:"Tag,omitempty"`
+	Tag        Tag       `gorm:"ForeignKey:TagID"`
 }
 
 // Tag is a struct to have a descr

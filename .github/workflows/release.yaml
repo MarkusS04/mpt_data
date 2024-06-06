@@ -58,6 +58,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.TOKEN }}
+
       - name: Set environment variables
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
@@ -72,6 +73,8 @@ jobs:
           tags: |
             ghcr.io/${{ env.REPO_OWNER }}/mpt_data:${{ github.ref_name }}
             ghcr.io/${{ env.REPO_OWNER }}/mpt_data:latest
+          cache-from: type=registry,ref=user/app:latest
+          cache-to: type=inline
 
       - name: Logout from GitHub Container Registry
         run: docker logout ghcr.io
