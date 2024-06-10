@@ -165,10 +165,9 @@ func (pdf *pdf) printTable(data pdfData) {
 	for _, task := range data.tasks {
 		pdf.printTaskHeader(task)
 
-		counter := 0
-		for _, row := range data.data {
+		for i, row := range data.data {
 			pdf.setTextColor(rgb{0, 0, 0})
-			pdf.setFillColor(pdf.colorBack[counter%2])
+			pdf.setFillColor(pdf.colorBack[i%2])
 
 			width := (pdf.WidthPageAvailable - pdf.widthDate) / float64(len(task.TaskDetails))
 			pdf.file.SetFont("Times", "B", 12)
@@ -190,8 +189,6 @@ func (pdf *pdf) printTable(data pdfData) {
 				}
 			}
 			pdf.file.Ln(-1)
-
-			counter++
 		}
 
 		pdf.file.Ln(1)
