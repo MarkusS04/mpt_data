@@ -8,6 +8,7 @@ import (
 	"mpt_data/helper/config"
 	dbModel "mpt_data/models/dbmodel"
 	generalmodel "mpt_data/models/general"
+	"os"
 	"strings"
 	"time"
 
@@ -92,6 +93,27 @@ func GetOrCreatePDF(db *gorm.DB, period generalmodel.Period) (path string, err e
 	}
 
 	return pdfFile, nil
+}
+
+// PDFAutoRemoval removes all pdfs from db and disk, that are older then x
+func PDFAutoRemoval(db *gorm.DB, monthAge int) (err error) {
+	var pdfs []dbModel.PDF
+	err = db.Where("end_date < ?", time.Now().AddDate(0, -monthAge, 0)).Find(&pdfs).Error
+	if err != nil {
+		logging.LogError("database.plan.PDFAutoRemoval", err.Error())
+		return err
+	}
+	for _, pdf := range pdfs {
+		err = os.Remove(pdf.FilePath)
+		if err != nil {
+			logging.LogError("database.plan.PDFAutoRemoval", err.Error())
+		}
+	}
+	err = db.Unscoped().Where("end_date < ?", time.Now().AddDate(0, -monthAge, 0)).Delete(&pdfs).Error
+	if err != nil {
+		logging.LogError("database.plan.PDFAutoRemoval", err.Error())
+	}
+	return
 }
 
 // getPDF initializes the PDF document.
