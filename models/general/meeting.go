@@ -1,4 +1,5 @@
-package apimodel
+// Package generalmodel provides types for db and api
+package generalmodel
 
 import "time"
 

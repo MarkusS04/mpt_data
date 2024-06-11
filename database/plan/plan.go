@@ -3,7 +3,6 @@ package plan
 
 import (
 	"mpt_data/database"
-	"mpt_data/database/logging"
 	"mpt_data/helper/errors"
 	"mpt_data/models/apimodel"
 	"mpt_data/models/dbmodel"
@@ -11,6 +10,7 @@ import (
 	generalmodel "mpt_data/models/general"
 	"time"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -54,29 +54,26 @@ func GetPlanWithID(planID uint) (plan dbModel.Plan, err error) {
 func CreatePlanData(db *gorm.DB, period generalmodel.Period) ([]dbModel.Plan, error) {
 	const funcName = packageName + ".CreatePlanData"
 	err :=
-		database.DB.Model(&dbModel.PDF{}).
+		db.Model(&dbModel.PDF{}).
 			Where("start_date between ? and ?", period.StartDate, period.EndDate).
 			Or("end_date between ? and ?", period.StartDate, period.EndDate).
 			Update("data_changed", true).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		logging.LogError(funcName, err.Error())
+		zap.L().Error(generalmodel.PlanCreationFailed, zap.Error(err), zap.String(generalmodel.AdditionalInfo, "PDF loading failed"))
 		return nil, err
 	}
 
-	tx := database.DB.Begin()
-	defer tx.Commit()
-
 	var meetings []dbModel.Meeting
 	if err :=
-		tx.Preload("Tag").Where("date between ? and ?", period.StartDate, period.EndDate).
+		db.Preload("Tag").Where("date between ? and ?", period.StartDate, period.EndDate).
 			Order("date").Find(&meetings).Error; err != nil {
-		logging.LogError(funcName, "errorr loading meetings: "+err.Error())
+		zap.L().Error(generalmodel.PlanCreationFailed, zap.Error(err), zap.String(generalmodel.AdditionalInfo, "Failed to load meetings"))
 		return nil, err
 	}
 
 	var tasks []dbModel.TaskDetail
-	if err := tx.Find(&tasks).Error; err != nil {
-		logging.LogError(funcName, "errorr loading tasks: "+err.Error())
+	if err := db.Find(&tasks).Error; err != nil {
+		zap.L().Error(generalmodel.PlanCreationFailed, zap.Error(err), zap.String(generalmodel.AdditionalInfo, "Failed to load tasks"))
 		return nil, err
 	}
 
@@ -84,33 +81,34 @@ func CreatePlanData(db *gorm.DB, period generalmodel.Period) ([]dbModel.Plan, er
 	for _, meeting := range meetings {
 		if meeting.Tag.ID != 0 {
 			var ids []uint
-			if tx.Table("plans").Where("meeting_id = ?", meeting.ID).Select("id").Find(&ids); len(ids) != 0 {
+			if db.Table("plans").Where("meeting_id = ?", meeting.ID).Select("id").Find(&ids); len(ids) != 0 {
 				continue
 			}
-			if err := tx.Create(&dbmodel.Plan{MeetingID: meeting.ID}).Error; err != nil {
-				logging.LogError(funcName, "error create plan: "+err.Error())
-				tx.RollbackTo("beforePlanCreation")
+			if err := db.Create(&dbmodel.Plan{MeetingID: meeting.ID}).Error; err != nil {
+				zap.L().Error(generalmodel.PlanCreationFailed, zap.Error(err), zap.String(generalmodel.AdditionalInfo, "Failed to create plan element"))
+				db.RollbackTo("beforePlanCreation")
 			}
 			continue
 		}
+
 		for _, task := range tasks {
 			var ids []uint
-			if tx.Table("plans").Where("meeting_id = ?", meeting.ID).Where("task_detail_id = ?", task.ID).Select("id").Find(&ids); len(ids) != 0 {
+			if db.Table("plans").Where("meeting_id = ?", meeting.ID).Where("task_detail_id = ?", task.ID).Select("id").Find(&ids); len(ids) != 0 {
 				continue
 			}
 
-			person, err := getFirstPersonAvailable(meeting, task, period, tx)
+			person, err := getFirstPersonAvailable(meeting, task, period, db)
 			if err != nil {
-				logging.LogError(funcName, "errorr loading person: "+err.Error())
+				zap.L().Info(generalmodel.PlanCreationError, zap.Error(err), zap.String(generalmodel.AdditionalInfo, "person loading error"))
 			}
 			if person == nil {
 				person = &dbModel.Person{}
 			}
 			plan := dbModel.Plan{PersonID: person.ID, MeetingID: meeting.ID, TaskDetailID: task.ID}
-			tx.SavePoint("beforePlanCreation")
-			if err := tx.Create(&plan).Error; err != nil {
-				tx.RollbackTo("beforePlanCreation")
-				logging.LogError(funcName, "errorr creating plan entry: "+err.Error())
+			db.SavePoint("beforePlanCreation")
+			if err := db.Create(&plan).Error; err != nil {
+				db.RollbackTo("beforePlanCreation")
+				zap.L().Error(generalmodel.PlanCreationFailed, zap.Error(err), zap.String(generalmodel.AdditionalInfo, "Failed to create plan element"))
 			} else {
 				planIDs = append(planIDs, plan.ID)
 			}
@@ -119,7 +117,7 @@ func CreatePlanData(db *gorm.DB, period generalmodel.Period) ([]dbModel.Plan, er
 
 	var plan []dbModel.Plan
 	if err :=
-		tx.Preload("Person").
+		db.Preload("Person").
 			Preload("Meeting").
 			Preload("TaskDetail.Task").
 			Preload("TaskDetail").

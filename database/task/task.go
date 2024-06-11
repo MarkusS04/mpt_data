@@ -1,11 +1,13 @@
+// Package task provides functions to manipulate tasks and their details in database
 package task
 
 import (
-	"mpt_data/database/logging"
 	"mpt_data/helper/errors"
 	"mpt_data/models/apimodel"
 	dbModel "mpt_data/models/dbmodel"
+	generalmodel "mpt_data/models/general"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +27,7 @@ func GetTask(db *gorm.DB, conds ...interface{}) (tasks []dbModel.Task, err error
 // AddTask adds a task with taskDetails
 func AddTask(db *gorm.DB, task *dbModel.Task) error {
 	if err := db.Create(task).Error; err != nil {
-		logging.LogError(packageName+".AddTask", err.Error())
+		zap.L().Error(generalmodel.DBSaveDataFailed, zap.Error(err))
 		return err
 	}
 
@@ -41,7 +43,7 @@ func UpdateTask(db *gorm.DB, task dbModel.Task) error {
 	if err :=
 		db.Save(&task).
 			Error; err != nil {
-		logging.LogError(packageName+".UpdateTask", err.Error())
+		zap.L().Error(generalmodel.DBUpdateDataFailed, zap.Error(err))
 		return err
 	}
 
@@ -56,13 +58,13 @@ func OrderTask(db *gorm.DB, tasks []apimodel.OrderTask) error {
 				Where("id = ?", t.TaskID).
 				Update("order_number", t.OrderNumber).
 				Error; err != nil && err != gorm.ErrRecordNotFound {
-			logging.LogError(packageName+".OrderTask", err.Error())
+			zap.L().Error(generalmodel.DBLoadDataFailed, zap.Error(err))
 			return err
 		}
 	}
 
 	if err := db.Model(&dbModel.PDF{}).Where("1=1").Update("data_changed", true).Error; err != nil {
-		logging.LogError(packageName+".OrderTask", err.Error())
+		zap.L().Error(generalmodel.DBLoadDataFailed, zap.Error(err))
 		return err
 	}
 
@@ -77,7 +79,7 @@ func DeleteTask(db *gorm.DB, task *dbModel.Task) error {
 
 	if err := db.Unscoped().Select("TaskDetails").Delete(&task).Error; err != nil {
 		db.Rollback()
-		logging.LogError(packageName+".DeleteTask", err.Error())
+		zap.L().Error(generalmodel.DBDeleteDataFailed, zap.Error(err))
 		return err
 	}
 

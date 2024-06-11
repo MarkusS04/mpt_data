@@ -2,9 +2,8 @@ package person
 
 import (
 	"encoding/json"
-	api_helper "mpt_data/api/apihelper"
+	"mpt_data/api/apihelper"
 	"mpt_data/api/middleware"
-	"mpt_data/database/logging"
 	"mpt_data/database/person"
 	"mpt_data/helper"
 	"mpt_data/helper/errors"
@@ -48,10 +47,10 @@ func getPerson(w http.ResponseWriter, r *http.Request) {
 	persons, err := person.GetPerson(tx)
 
 	if err != nil {
-		api_helper.InternalError(w, funcName, err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
-	api_helper.ResponseJSON(w, funcName, persons)
+	apihelper.ResponseJSON(w, persons)
 }
 
 // @Summary		Add Person
@@ -69,7 +68,7 @@ func addPerson(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".addPerson"
 	var personIn dbModel.Person
 	if err := json.NewDecoder(r.Body).Decode(&personIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName,
+		apihelper.ResponseBadRequest(w,
 			apiModel.Result{
 				Result: "person not created",
 				Error:  "provided json data is invalid",
@@ -82,17 +81,17 @@ func addPerson(w http.ResponseWriter, r *http.Request) {
 	err := person.AddPerson(tx, &personIn)
 	switch err {
 	case nil:
-		api_helper.ResponseJSON(w, funcName, personIn, http.StatusCreated)
+		apihelper.ResponseJSON(w, personIn, http.StatusCreated)
 	case errors.ErrPersonMissingName:
-		api_helper.ResponseBadRequest(
-			w, funcName, apiModel.Result{
+		apihelper.ResponseBadRequest(
+			w, apiModel.Result{
 				Result: "failed to store data",
 				Error:  err.Error(),
 			}, err)
 		break
 	default:
-		api_helper.ResponseBadRequest(
-			w, funcName, apiModel.Result{
+		apihelper.ResponseBadRequest(
+			w, apiModel.Result{
 				Result: "failed to store data",
 			}, err)
 		break
@@ -117,7 +116,7 @@ func deletePerson(w http.ResponseWriter, r *http.Request) {
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		api_helper.ResponseBadRequest(w, funcName,
+		apihelper.ResponseBadRequest(w,
 			apiModel.Result{
 				Result: "failed to delete person",
 				Error:  "id not valid",
@@ -131,18 +130,15 @@ func deletePerson(w http.ResponseWriter, r *http.Request) {
 	tx := middleware.GetTx(r.Context())
 
 	if err := person.DeletePerson(tx, persons); err != nil {
-		logging.LogError(funcName, err.Error())
-		api_helper.ResponseJSON(
-			w, funcName,
-			apiModel.Result{
+		apihelper.ResponseJSON(
+			w, apiModel.Result{
 				Result: "failed to delete person",
 				Error:  "Internal Server Error"})
 		return
 	}
 
-	api_helper.ResponseJSON(
-		w, funcName,
-		apiModel.Result{
+	apihelper.ResponseJSON(
+		w, apiModel.Result{
 			Result: "deleted person succesfull"})
 }
 
@@ -165,7 +161,7 @@ func updatePerson(w http.ResponseWriter, r *http.Request) {
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		api_helper.ResponseBadRequest(w, funcName,
+		apihelper.ResponseBadRequest(w,
 			apiModel.Result{
 				Result: "person not updated",
 				Error:  "id not valid"}, err)
@@ -174,7 +170,7 @@ func updatePerson(w http.ResponseWriter, r *http.Request) {
 
 	var personIn dbModel.Person
 	if err := json.NewDecoder(r.Body).Decode(&personIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "failed to decode request body"}, err)
 		return
 	}
 	personIn.ID = uint(*id)
@@ -184,17 +180,17 @@ func updatePerson(w http.ResponseWriter, r *http.Request) {
 	err = person.UpdatePerson(tx, &personIn)
 	switch err {
 	case nil:
-		api_helper.ResponseJSON(w, funcName, personIn, http.StatusOK)
+		apihelper.ResponseJSON(w, personIn, http.StatusOK)
 	case errors.ErrPersonMissingName:
-		api_helper.ResponseBadRequest(
-			w, funcName, apiModel.Result{
+		apihelper.ResponseBadRequest(
+			w, apiModel.Result{
 				Result: "failed to store data",
 				Error:  err.Error(),
 			}, err)
 		break
 	default:
-		api_helper.ResponseBadRequest(
-			w, funcName, apiModel.Result{
+		apihelper.ResponseBadRequest(
+			w, apiModel.Result{
 				Result: "failed to store data",
 			}, err)
 		break

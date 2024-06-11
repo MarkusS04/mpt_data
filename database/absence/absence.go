@@ -1,29 +1,32 @@
+// Package absence provides CRUD for absences
 package absence
 
 import (
-	"fmt"
 	"mpt_data/database"
-	"mpt_data/database/logging"
 	"mpt_data/helper/errors"
 	dbModel "mpt_data/models/dbmodel"
 	generalmodel "mpt_data/models/general"
 	"sort"
+
+	"go.uber.org/zap"
 )
 
 const packageName = "database.absence"
 
+// AddAbsence stores absence
 func AddAbsence(absences []dbModel.PersonAbsence) error {
 	db := database.DB.Begin()
 	defer db.Commit()
 
 	if err := db.Save(&absences).Error; err != nil {
 		db.Rollback()
-		logging.LogError(packageName+".addAbsence", err.Error())
+		zap.L().Error(generalmodel.DBSaveDataFailed, zap.Error(err))
 		return err
 	}
 	return nil
 }
 
+// DeleteAbsence deletes absence
 func DeleteAbsence(absences []dbModel.PersonAbsence) error {
 	for _, absence := range absences {
 		if absence.MeetingID == 0 || absence.PersonID == 0 {
@@ -39,13 +42,14 @@ func DeleteAbsence(absences []dbModel.PersonAbsence) error {
 				Where("person_id = ?", absence.PersonID).
 				Unscoped().Delete(&absence).Error; err != nil {
 			db.Rollback()
-			logging.LogError(packageName+".deleteAbsence", err.Error())
+			zap.L().Error(generalmodel.DBDeleteDataFailed, zap.Error(err))
 			return err
 		}
 	}
 	return nil
 }
 
+// GetAbsenceMeeting loads absence for specific meeting
 func GetAbsenceMeeting(meetingID uint) (people []dbModel.Person, err error) {
 	var meeting []dbModel.PersonAbsence
 	if err :=
@@ -54,7 +58,7 @@ func GetAbsenceMeeting(meetingID uint) (people []dbModel.Person, err error) {
 			Preload("Meeting").
 			Where("meeting_id = ?", meetingID).
 			Find(&meeting).Error; err != nil {
-		logging.LogError(packageName+".getAbsence", fmt.Sprintf("%s, meeting_id=%d", err.Error(), meetingID))
+		zap.L().Error(generalmodel.DBLoadDataFailed, zap.Error(err), zap.Uint("meeting_id", meetingID))
 		return nil, err
 	}
 
@@ -65,6 +69,7 @@ func GetAbsenceMeeting(meetingID uint) (people []dbModel.Person, err error) {
 	return people, nil
 }
 
+// GetAbsencePerson loads absence for specific person
 func GetAbsencePerson(personID uint, period generalmodel.Period) (meetings []dbModel.Meeting, err error) {
 	var absence []dbModel.PersonAbsence
 	if err :=
@@ -78,7 +83,8 @@ func GetAbsencePerson(personID uint, period generalmodel.Period) (meetings []dbM
 					Select("id")).
 			Where("person_id = ?", personID).
 			Find(&absence).Error; err != nil {
-		logging.LogError(packageName+".getAbsence", fmt.Sprintf("%s, person_id=%d", err.Error(), personID))
+		zap.L().Error(generalmodel.DBLoadDataFailed, zap.Error(err), zap.Uint("person_id", personID))
+
 		return nil, err
 	}
 

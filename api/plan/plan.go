@@ -2,10 +2,9 @@ package plan
 
 import (
 	"encoding/json"
-	api_helper "mpt_data/api/apihelper"
+	"mpt_data/api/apihelper"
 	"mpt_data/api/middleware"
 	"mpt_data/database"
-	"mpt_data/database/logging"
 	"mpt_data/database/plan"
 	"mpt_data/helper"
 	"mpt_data/helper/errors"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -41,7 +41,6 @@ func RegisterRoutes(mux *mux.Router) {
 // @Failure		401
 // @Router			/plan [GET]
 func getPlan(w http.ResponseWriter, r *http.Request) {
-	funcName := "api.plan.getPlan"
 	accept := r.Header.Get("Accept")
 
 	var load func(http.ResponseWriter, *http.Request, time.Time, time.Time)
@@ -52,7 +51,7 @@ func getPlan(w http.ResponseWriter, r *http.Request) {
 		load = getPlanPDF
 	} else {
 		load = getPlanJSON
-		logging.LogWarning(funcName, "accept hedear:"+accept)
+		zap.L().Info(generalmodel.UnkownAcceptHeader, zap.String(generalmodel.AcceptHeader, accept))
 	}
 
 	queryParams := r.URL.Query()
@@ -60,11 +59,11 @@ func getPlan(w http.ResponseWriter, r *http.Request) {
 	startDate, err := helper.ParseTime(queryParams.Get("StartDate"))
 	endDate, err2 := helper.ParseTime(queryParams.Get("EndDate"))
 	if err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "could not parse StartDate and/or EndDate"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "could not parse StartDate and/or EndDate"}, err)
 		return
 	}
 	if err2 != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "could not parse StartDate and/or EndDate"}, err2)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "could not parse StartDate and/or EndDate"}, err2)
 		return
 	}
 
@@ -72,13 +71,13 @@ func getPlan(w http.ResponseWriter, r *http.Request) {
 }
 
 func getPlanJSON(w http.ResponseWriter, _ *http.Request, startDate time.Time, endDate time.Time) {
-	funcName := "api.plan.getPlanJson"
+
 	plan, err := plan.GetPlan(generalmodel.Period{StartDate: startDate, EndDate: endDate})
 	if err != nil {
-		api_helper.InternalError(w, funcName, "error creating plan: "+err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
-	api_helper.ResponseJSON(w, funcName, plan)
+	apihelper.ResponseJSON(w, plan)
 }
 
 // @Summary		Get Plan with ID
@@ -93,16 +92,15 @@ func getPlanJSON(w http.ResponseWriter, _ *http.Request, startDate time.Time, en
 // @Failure		401
 // @Router			/plan/{id} [GET]
 func getPlanWithID(w http.ResponseWriter, r *http.Request) {
-	funcName := "api.plan.addPlan"
 	if id, err := helper.ExtractIntFromURL(r, "id"); err != nil {
-		api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "could not read id in path"}, http.StatusBadRequest)
+		apihelper.ResponseJSON(w, apiModel.Result{Result: "could not read id in path"}, http.StatusBadRequest)
 	} else if *id <= 0 {
-		api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "id smaller then 0 invalid"}, http.StatusBadRequest)
+		apihelper.ResponseJSON(w, apiModel.Result{Result: "id smaller then 0 invalid"}, http.StatusBadRequest)
 	} else {
 		if plan, err := plan.GetPlanWithID(uint(*id)); err != nil {
-			api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "plan not available"}, http.StatusBadRequest)
+			apihelper.ResponseJSON(w, apiModel.Result{Result: "plan not available"}, http.StatusBadRequest)
 		} else {
-			api_helper.ResponseJSON(w, funcName, plan)
+			apihelper.ResponseJSON(w, plan)
 		}
 	}
 }
@@ -119,29 +117,28 @@ func getPlanWithID(w http.ResponseWriter, r *http.Request) {
 // @Failure		401
 // @Router			/plan/{id}/people [GET]
 func getPersonPlan(w http.ResponseWriter, r *http.Request) {
-	funcName := "api.plan.addPlan"
 
 	var planData dbModel.Plan
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil {
-		api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "could not read id in path"}, http.StatusBadRequest)
+		apihelper.ResponseJSON(w, apiModel.Result{Result: "could not read id in path"}, http.StatusBadRequest)
 		return
 	} else if *id <= 0 {
-		api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "id smaller then 0 invalid"}, http.StatusBadRequest)
+		apihelper.ResponseJSON(w, apiModel.Result{Result: "id smaller then 0 invalid"}, http.StatusBadRequest)
 		return
 	}
 	if err := database.DB.Preload("Meeting").First(&planData, "id = ?", uint(*id)).Error; err != nil {
-		api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "plan not available"}, http.StatusBadRequest)
+		apihelper.ResponseJSON(w, apiModel.Result{Result: "plan not available"}, http.StatusBadRequest)
 		return
 	}
 
 	people, err := plan.GetAllPersonAvailable(database.DB, planData)
 	if err != nil {
-		api_helper.InternalError(w, funcName, "error loading persons: "+err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
 
-	api_helper.ResponseJSON(w, funcName, people)
+	apihelper.ResponseJSON(w, people)
 }
 
 // @Summary		Create Plan
@@ -157,27 +154,26 @@ func getPersonPlan(w http.ResponseWriter, r *http.Request) {
 // @Failure		401
 // @Router			/plan [POST]
 func addPlan(w http.ResponseWriter, r *http.Request) {
-	funcName := "api.plan.addPlan"
 	queryParams := r.URL.Query()
 
 	startDate, err := helper.ParseTime(queryParams.Get("StartDate"))
 	endDate, err2 := helper.ParseTime(queryParams.Get("EndDate"))
 	if err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "could not parse StartDate and/or EndDate"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "could not parse StartDate and/or EndDate"}, err)
 		return
 	}
 	if err2 != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "could not parse StartDate and/or EndDate"}, err2)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "could not parse StartDate and/or EndDate"}, err2)
 		return
 	}
 
 	plan, err := plan.CreatePlanData(database.DB, generalmodel.Period{StartDate: startDate, EndDate: endDate})
 	if err != nil {
-		api_helper.InternalError(w, funcName, "error creating plan: "+err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
 
-	api_helper.ResponseJSON(w, funcName, plan)
+	apihelper.ResponseJSON(w, plan)
 }
 
 // @Summary		Update a Plan Element
@@ -193,14 +189,13 @@ func addPlan(w http.ResponseWriter, r *http.Request) {
 // @Failure		401
 // @Router			/plan/{id} [PUT]
 func updatePlan(w http.ResponseWriter, r *http.Request) {
-	funcName := "api.plan.updatePlan"
 
 	type p struct {
 		ID uint
 	}
 	var person p
 	if err := json.NewDecoder(r.Body).Decode(&person); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "error in request body"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "error in request body"}, err)
 		return
 	}
 
@@ -208,7 +203,7 @@ func updatePlan(w http.ResponseWriter, r *http.Request) {
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "id not correctly set"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "id not correctly set"}, err)
 		return
 	}
 	database.DB.First(&planData, "id = ?", uint(*id))
@@ -221,6 +216,6 @@ func updatePlan(w http.ResponseWriter, r *http.Request) {
 	case nil:
 		w.WriteHeader(http.StatusOK)
 	default:
-		api_helper.InternalError(w, funcName, "error creating plan: "+err.Error())
+		apihelper.InternalError(w, err)
 	}
 }

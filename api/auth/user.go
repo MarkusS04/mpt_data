@@ -2,7 +2,7 @@ package auth
 
 import (
 	"encoding/json"
-	api_helper "mpt_data/api/apihelper"
+	"mpt_data/api/apihelper"
 	"mpt_data/api/middleware"
 	"mpt_data/database/auth"
 	apiModel "mpt_data/models/apimodel"
@@ -64,17 +64,17 @@ func changePW(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".changePW"
 	id, err := auth.GetUserIDFromToken(r.Header.Get("Authorization"))
 	if err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "password not changed"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "password not changed"}, err)
 		return
 	}
 	var user pw
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "missing data"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "missing data"}, err)
 		return
 	}
 
 	if err := auth.ChangePassword(id, user.Password); err != nil {
-		api_helper.InternalError(w, funcName, err.Error())
+		apihelper.InternalError(w, err)
 	}
-	api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "password changed succesfull"})
+	apihelper.ResponseJSON(w, apiModel.Result{Result: "password changed succesfull"})
 }

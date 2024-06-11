@@ -3,7 +3,6 @@ package absencemeeting
 import (
 	"encoding/json"
 	"mpt_data/api/apihelper"
-	api_helper "mpt_data/api/apihelper"
 	"mpt_data/api/middleware"
 	"mpt_data/database/absence"
 	"mpt_data/helper"
@@ -36,11 +35,10 @@ func RegisterRoutes(mux *mux.Router) {
 // @Failure		401
 // @Router			/meeting/{MeetingId}/absence [GET]
 func getAbsence(w http.ResponseWriter, r *http.Request) {
-	const funcName = packageName + ".getAbsence"
 	var id *int
 	var err error
 	if id, err = helper.ExtractIntFromURL(r, "id"); err != nil || *id <= 0 {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "id not valid"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "id not valid"}, err)
 		return
 	}
 
@@ -52,10 +50,10 @@ func getAbsence(w http.ResponseWriter, r *http.Request) {
 		case gorm.ErrEmptySlice, gorm.ErrInvalidData:
 			w.WriteHeader(http.StatusBadRequest)
 		default:
-			api_helper.InternalError(w, funcName, err.Error())
+			apihelper.InternalError(w, err)
 		}
 	} else {
-		api_helper.ResponseJSON(w, funcName, data)
+		apihelper.ResponseJSON(w, data)
 	}
 }
 
@@ -77,13 +75,13 @@ func addAbsence(w http.ResponseWriter, r *http.Request) {
 	var absences []uint
 	var absencePerson []dbModel.PersonAbsence
 	if err := json.NewDecoder(r.Body).Decode(&absences); err != nil {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "people id not set"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "people id not set"}, err)
 		return
 	}
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "meeting id not valid"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "meeting id not valid"}, err)
 		return
 	}
 	for _, ab := range absences {
@@ -97,10 +95,10 @@ func addAbsence(w http.ResponseWriter, r *http.Request) {
 		case gorm.ErrEmptySlice, gorm.ErrInvalidData, gorm.ErrRecordNotFound:
 			w.WriteHeader(http.StatusBadRequest)
 		default:
-			api_helper.InternalError(w, funcName, err.Error())
+			apihelper.InternalError(w, err)
 		}
 	} else {
-		api_helper.ResponseJSON(w, funcName, absences, http.StatusCreated)
+		apihelper.ResponseJSON(w, absences, http.StatusCreated)
 	}
 }
 
@@ -121,13 +119,13 @@ func deleteAbsence(w http.ResponseWriter, r *http.Request) {
 	var absences []uint
 	var absencePerson []dbModel.PersonAbsence
 	if err := json.NewDecoder(r.Body).Decode(&absences); err != nil {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "people id not set"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "people id not set"}, err)
 		return
 	}
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "id not valid"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "id not valid"}, err)
 		return
 	}
 	for _, ab := range absences {
@@ -141,7 +139,7 @@ func deleteAbsence(w http.ResponseWriter, r *http.Request) {
 		case gorm.ErrEmptySlice, gorm.ErrInvalidData, gorm.ErrRecordNotFound:
 			w.WriteHeader(http.StatusBadRequest)
 		default:
-			api_helper.InternalError(w, funcName, err.Error())
+			apihelper.InternalError(w, err)
 		}
 	} else {
 		w.WriteHeader(http.StatusOK)

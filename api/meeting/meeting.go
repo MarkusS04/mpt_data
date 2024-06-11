@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 
 	"mpt_data/api/apihelper"
-	api_helper "mpt_data/api/apihelper"
 	"mpt_data/api/middleware"
 	"mpt_data/database"
 	"mpt_data/database/meeting"
@@ -46,22 +45,21 @@ func RegisterRoutes(mux *mux.Router) {
 // @Failure		401
 // @Router			/meeting [GET]
 func getMeetings(w http.ResponseWriter, r *http.Request) {
-	const funcName = packageName + ".getMeetings"
 	queryParams := r.URL.Query()
 
 	startDate, err := helper.ParseTime(queryParams.Get("StartDate"))
 	endDate, err2 := helper.ParseTime(queryParams.Get("EndDate"))
 	if err != nil || err2 != nil {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "could not parse StartDate and/or EndDate"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "could not parse StartDate and/or EndDate"}, err)
 		return
 	}
 
 	meetings, err := meeting.GetMeetings(generalmodel.Period{StartDate: startDate, EndDate: endDate})
 	if err != nil {
-		api_helper.InternalError(w, funcName, err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
-	api_helper.ResponseJSON(w, funcName, meetings)
+	apihelper.ResponseJSON(w, meetings)
 }
 
 // @Summary		Add Meetings
@@ -87,11 +85,11 @@ func addMeeting(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case errors.ErrNotAllMeetingsCreated:
-			apihelper.ResponseJSON(w, packageName+"addMeeting", apiModel.Result{Result: "not all meetings created"})
+			apihelper.ResponseJSON(w, apiModel.Result{Result: "not all meetings created"})
 		case gorm.ErrEmptySlice, gorm.ErrInvalidData, gorm.ErrRecordNotFound:
 			w.WriteHeader(http.StatusBadRequest)
 		default:
-			api_helper.InternalError(w, packageName+"addMeeting", err.Error())
+			apihelper.InternalError(w, err)
 		}
 	} else {
 		w.WriteHeader(http.StatusCreated)
@@ -115,21 +113,21 @@ func updatetMeeting(w http.ResponseWriter, r *http.Request) {
 	var meetingIn dbModel.Meeting
 	var err error
 	if err = json.NewDecoder(r.Body).Decode(&meetingIn); err != nil {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "error in request body"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "error in request body"}, err)
 
 		return
 	}
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "id not valid"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "id not valid"}, err)
 		return
 	}
 	meetingIn.ID = uint(*id)
 
 	err = meeting.UpdateMeeting(meetingIn)
 	if err != nil {
-		api_helper.InternalError(w, packageName+".updateMeeting", err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
 
@@ -152,15 +150,15 @@ func deleteMeeting(w http.ResponseWriter, r *http.Request) {
 	var meetingIn dbModel.Meeting
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "id not valid"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "id not valid"}, err)
 		return
 	}
 	meetingIn.ID = uint(*id)
 
 	if err := meeting.DeleteMeeting(meetingIn); err == errors.ErrMeetingNotDeleted {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "meetings not deleted"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "meetings not deleted"}, err)
 	} else if err != nil {
-		api_helper.InternalError(w, packageName+".deleteMeeting", err.Error())
+		apihelper.InternalError(w, err)
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
@@ -182,13 +180,13 @@ func addTag(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".addTag"
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "id not valid"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "id not valid"}, err)
 		return
 	}
 
 	var data dbModel.Tag
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "failed to decode request body"}, err)
 		return
 	}
 
@@ -197,7 +195,7 @@ func addTag(w http.ResponseWriter, r *http.Request) {
 
 	if err := meeting.CreateTag(tx, uint(*id), data); err != nil {
 		tx.Rollback()
-		api_helper.ResponseBadRequest(w, packageName+".addTag", apiModel.Result{Result: "tag could not be created"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "tag could not be created"}, err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -218,7 +216,7 @@ func deleteTag(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".deleteTag"
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		apihelper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "id not valid"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "id not valid"}, err)
 		return
 	}
 
@@ -227,7 +225,7 @@ func deleteTag(w http.ResponseWriter, r *http.Request) {
 
 	if err := meeting.DeleteTag(tx, uint(*id)); err != nil {
 		tx.Rollback()
-		api_helper.ResponseBadRequest(w, packageName+".deleteTag", apiModel.Result{Result: "tag could not be created"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "tag could not be created"}, err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

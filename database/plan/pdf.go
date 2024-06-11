@@ -3,7 +3,6 @@ package plan
 
 import (
 	"fmt"
-	"mpt_data/database/logging"
 	"mpt_data/database/task"
 	"mpt_data/helper/config"
 	dbModel "mpt_data/models/dbmodel"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-pdf/fpdf"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -50,14 +50,12 @@ type (
 
 // GetOrCreatePDF generates a PDF file based on the provided period.
 func GetOrCreatePDF(db *gorm.DB, period generalmodel.Period) (path string, err error) {
-	const funcName = packageName + ".GetOrCreatePDF"
 	var file dbModel.PDF
 	if err :=
-		db.
-			Where("start_date = ?", period.StartDate).
+		db.Where("start_date = ?", period.StartDate).
 			Where("end_date = ?", period.EndDate).
 			First(&file).Error; err != nil {
-		logging.LogError(funcName, err.Error())
+		zap.L().Error(generalmodel.DBLoadDataFailed, zap.Error(err))
 	} else if !file.DataChanged && file.FilePath != "" {
 		return file.FilePath, nil
 	}
@@ -68,7 +66,7 @@ func GetOrCreatePDF(db *gorm.DB, period generalmodel.Period) (path string, err e
 
 	pdfData, err := getPdfData(db, period)
 	if err != nil {
-		logging.LogError(funcName, err.Error())
+		zap.L().Error(generalmodel.DBLoadDataFailed, zap.Error(err))
 		return "", err
 	}
 	pdf.printTable(pdfData)
@@ -78,7 +76,7 @@ func GetOrCreatePDF(db *gorm.DB, period generalmodel.Period) (path string, err e
 
 	if err :=
 		pdf.file.OutputFileAndClose(pdfFile); err != nil {
-		logging.LogError(funcName, err.Error())
+		zap.L().Error(generalmodel.PDFFileCreationFailed, zap.Error(err))
 		return "", err
 	}
 
@@ -100,18 +98,18 @@ func PDFAutoRemoval(db *gorm.DB, monthAge int) (err error) {
 	var pdfs []dbModel.PDF
 	err = db.Where("end_date < ?", time.Now().AddDate(0, -monthAge, 0)).Find(&pdfs).Error
 	if err != nil {
-		logging.LogError("database.plan.PDFAutoRemoval", err.Error())
+		zap.L().Error(generalmodel.DBLoadDataFailed, zap.Error(err))
 		return err
 	}
 	for _, pdf := range pdfs {
 		err = os.Remove(pdf.FilePath)
 		if err != nil {
-			logging.LogError("database.plan.PDFAutoRemoval", err.Error())
+			zap.L().Error(generalmodel.PDFRemovalFailed, zap.Error(err))
 		}
 	}
 	err = db.Unscoped().Where("end_date < ?", time.Now().AddDate(0, -monthAge, 0)).Delete(&pdfs).Error
 	if err != nil {
-		logging.LogError("database.plan.PDFAutoRemoval", err.Error())
+		zap.L().Error(generalmodel.DBDeleteDataFailed, zap.Error(err))
 	}
 	return
 }

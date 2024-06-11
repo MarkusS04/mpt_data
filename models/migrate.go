@@ -2,26 +2,27 @@ package models
 
 import (
 	"encoding/base64"
-	"fmt"
 	"mpt_data/database"
 	"mpt_data/database/auth"
-	"mpt_data/database/logging"
 	"mpt_data/helper"
-	"mpt_data/helper/config"
 	"mpt_data/helper/errors"
 	"mpt_data/models/apimodel"
 	"mpt_data/models/dbmodel"
+	generalmodel "mpt_data/models/general"
 	"os"
 	"regexp"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 func Init() {
 	db := database.DB
+	// Todo: Remove these lines
+	db.Exec("drop table logs")
 	encryptExistingData()
+
 	if err := db.AutoMigrate(
-		&dbmodel.Log{},
 		&dbmodel.User{},
 		&dbmodel.Meeting{},
 		&dbmodel.Task{},
@@ -33,24 +34,23 @@ func Init() {
 		&dbmodel.Plan{},
 		&dbmodel.PDF{},
 	); err != nil {
-		// kein Logging in DB verfügbar
-		config.Config.Log.LevelDB = ^uint(0)
-		logging.LogError("models.Init", err.Error())
+		zap.L().Error(generalmodel.DBMigrationFailed, zap.Error(err))
 		os.Exit(1)
 	}
+
 	if err := auth.CreateUser(apimodel.UserLogin{Username: "admin", Password: "admin"}); err != nil && err != errors.ErrUserAlreadyExists {
-		fmt.Println(err)
+		zap.L().Error(generalmodel.UserCreationFailed, zap.Error(err))
 	}
-	fmt.Println("database initialized")
+
+	zap.L().Info(generalmodel.DBMigrated)
 }
 
 // will be dropped in future versions, it is that version 2 to 3 does not break the entire database system
+// Todo: Remove this function
 func encryptExistingData() {
-
 	if testDataAlreadyEncrypted() {
 		return
 	}
-	database.DB.Exec("drop table logs")
 
 	database.DB.Transaction(
 		func(tx *gorm.DB) error {
@@ -138,20 +138,12 @@ func encryptExistingData() {
 }
 
 // test some tables if data is already encrypted
+// Todo: Remove this function
 func testDataAlreadyEncrypted() bool {
 	var people []dbmodel.Person
 	if rows := database.DB.Session((&gorm.Session{SkipHooks: true})).Find(&people).RowsAffected; rows != 0 {
 		for _, person := range people {
 			if !isBase64(person.GivenName) {
-				return false
-			}
-		}
-	}
-
-	var logs []dbmodel.Log
-	if rows := database.DB.Session((&gorm.Session{SkipHooks: true})).Find(&logs).RowsAffected; rows != 0 {
-		for _, log := range logs {
-			if !isBase64(log.Text) {
 				return false
 			}
 		}
@@ -168,6 +160,7 @@ func testDataAlreadyEncrypted() bool {
 	return true
 }
 
+// Todo: Remove this function
 func isBase64(s string) bool {
 	// Check if the length is a multiple of 4
 	if len(s)%4 != 0 {

@@ -2,7 +2,7 @@ package person
 
 import (
 	"encoding/json"
-	api_helper "mpt_data/api/apihelper"
+	"mpt_data/api/apihelper"
 	"mpt_data/database/person"
 	apiModel "mpt_data/models/apimodel"
 	dbModel "mpt_data/models/dbmodel"
@@ -30,24 +30,24 @@ func getTaskForPerson(w http.ResponseWriter, r *http.Request) {
 			const funcName = packageName + ".getTaskOnePerson"
 			tasks, err := person.GetTaskOfPerson(id)
 			if err != nil {
-				api_helper.InternalError(w, funcName, err.Error())
+				apihelper.InternalError(w, err)
 			}
-			api_helper.ResponseJSON(w, funcName, tasks)
+			apihelper.ResponseJSON(w, tasks)
 		}
 		// getTaskAllPerson loads all persons with there tasks
 		getTaskAllPerson = func(w http.ResponseWriter) {
 			const funcName = packageName + ".getTaskAllPerson"
 			persons, err := person.GetPersonWithTask()
 			if err != nil {
-				api_helper.InternalError(w, funcName, err.Error())
+				apihelper.InternalError(w, err)
 			}
-			api_helper.ResponseJSON(w, funcName, persons)
+			apihelper.ResponseJSON(w, persons)
 		}
 	)
 
-	id, err := api_helper.ExtractIntFromURL(r, "id")
+	id, err := apihelper.ExtractIntFromURL(r, "id")
 	if err != nil {
-		api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: err.Error()}, http.StatusBadRequest)
+		apihelper.ResponseJSON(w, apiModel.Result{Result: err.Error()}, http.StatusBadRequest)
 		return
 	}
 
@@ -75,19 +75,19 @@ func getTaskForPerson(w http.ResponseWriter, r *http.Request) {
 func addTaskToPerson(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".addTaskToPerson"
 
-	id, err := api_helper.ExtractIntFromURL(r, "id")
+	id, err := apihelper.ExtractIntFromURL(r, "id")
 	if err != nil {
-		api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "invalid ID: " + err.Error()}, http.StatusBadRequest)
+		apihelper.ResponseJSON(w, apiModel.Result{Result: "invalid ID: " + err.Error()}, http.StatusBadRequest)
 		return
 	}
 	if id <= 0 {
-		api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "ID must be greater than 0"}, http.StatusBadRequest)
+		apihelper.ResponseJSON(w, apiModel.Result{Result: "ID must be greater than 0"}, http.StatusBadRequest)
 		return
 	}
 
 	var tasks []uint
 	if err := json.NewDecoder(r.Body).Decode(&tasks); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "failed to decode request body"}, err)
 		return
 	}
 
@@ -98,11 +98,11 @@ func addTaskToPerson(w http.ResponseWriter, r *http.Request) {
 
 	addedTasks, err := person.AddTaskToPerson(uint(id), taskDetails)
 	if err != nil {
-		api_helper.InternalError(w, funcName, "failed to add task to person"+err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
 
-	api_helper.ResponseJSON(w, funcName, addedTasks, http.StatusCreated)
+	apihelper.ResponseJSON(w, addedTasks, http.StatusCreated)
 }
 
 // deleteTaskFromPerson deletes tasks of person
@@ -122,19 +122,19 @@ func addTaskToPerson(w http.ResponseWriter, r *http.Request) {
 func deleteTaskFromPerson(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".deleteTaskFromPerson"
 
-	id, err := api_helper.ExtractIntFromURL(r, "id")
+	id, err := apihelper.ExtractIntFromURL(r, "id")
 	if err != nil {
-		api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "invalid ID: " + err.Error()}, http.StatusBadRequest)
+		apihelper.ResponseJSON(w, apiModel.Result{Result: "invalid ID: " + err.Error()}, http.StatusBadRequest)
 		return
 	}
 	if id <= 0 {
-		api_helper.ResponseJSON(w, funcName, apiModel.Result{Result: "ID must be greater than 0"}, http.StatusBadRequest)
+		apihelper.ResponseJSON(w, apiModel.Result{Result: "ID must be greater than 0"}, http.StatusBadRequest)
 		return
 	}
 
 	var tasks []uint
 	if err := json.NewDecoder(r.Body).Decode(&tasks); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apiModel.Result{Result: "failed to decode request body"}, err)
+		apihelper.ResponseBadRequest(w, apiModel.Result{Result: "failed to decode request body"}, err)
 		return
 	}
 
@@ -144,7 +144,7 @@ func deleteTaskFromPerson(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := person.DeleteTaskFromPerson(uint(id), taskDetails); err != nil {
-		api_helper.InternalError(w, funcName, "failed delete task from person: "+err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
 

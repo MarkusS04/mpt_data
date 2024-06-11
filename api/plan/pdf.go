@@ -3,7 +3,7 @@ package plan
 import (
 	"fmt"
 	"io"
-	api_helper "mpt_data/api/apihelper"
+	"mpt_data/api/apihelper"
 	"mpt_data/api/middleware"
 	"mpt_data/database/plan"
 	generalmodel "mpt_data/models/general"
@@ -21,13 +21,13 @@ func getPlanPDF(w http.ResponseWriter, r *http.Request, startDate time.Time, end
 	tx := middleware.GetTx(r.Context())
 	path, err := plan.GetOrCreatePDF(tx, generalmodel.Period{StartDate: startDate, EndDate: endDate})
 	if err != nil {
-		api_helper.InternalError(w, funcName, err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
 
 	pdfFile, err := os.Open(path)
 	if err != nil {
-		api_helper.InternalError(w, funcName, err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
 	defer pdfFile.Close()
@@ -38,7 +38,7 @@ func getPlanPDF(w http.ResponseWriter, r *http.Request, startDate time.Time, end
 	// Kopiere den Inhalt der PDF-Datei in die Antwort
 	_, err = io.Copy(w, pdfFile)
 	if err != nil {
-		api_helper.InternalError(w, funcName, err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
 }

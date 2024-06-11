@@ -1,10 +1,13 @@
+// Package person provides functions to execute CRUD on person
 package person
 
 import (
 	"mpt_data/database"
-	"mpt_data/database/logging"
 	"mpt_data/helper/errors"
 	dbModel "mpt_data/models/dbmodel"
+	generalmodel "mpt_data/models/general"
+
+	"go.uber.org/zap"
 )
 
 // AddTaskToPerson adds tasks to a person
@@ -23,12 +26,13 @@ func AddTaskToPerson(personID uint, tasks []dbModel.TaskDetail) (personTask []db
 
 	if err = db.Create(&personTask).Error; err != nil {
 		db.Rollback()
-		logging.LogError(packageName+".AddTaskToPerson", err.Error())
+		zap.L().Error(generalmodel.DBSaveDataFailed, zap.Error(err))
 		return nil, err
 	}
 	return personTask, nil
 }
 
+// DeleteTaskFromPerson deletes tasks from a person
 func DeleteTaskFromPerson(personID uint, tasks []dbModel.TaskDetail) error {
 	if personID == 0 {
 		return errors.ErrIDNotSet
@@ -47,13 +51,14 @@ func DeleteTaskFromPerson(personID uint, tasks []dbModel.TaskDetail) error {
 				Where("task_detail_id = ?", task.ID).
 				Delete(&dbModel.PersonTask{}).Error; err != nil {
 			db.Rollback()
-			logging.LogError(packageName+".DeleteTaskFromPerson", err.Error())
+			zap.L().Error(generalmodel.DBDeleteDataFailed, zap.Error(err))
 			return err
 		}
 	}
 	return nil
 }
 
+// GetTaskOfPerson loads tasks assigned to a person
 func GetTaskOfPerson(personID uint) (task []dbModel.Task, err error) {
 	if personID == 0 {
 		return nil, errors.ErrIDNotSet
@@ -71,6 +76,7 @@ func GetTaskOfPerson(personID uint) (task []dbModel.Task, err error) {
 	return task, nil
 }
 
+// GetPersonWithTask loads all people with tasks assigned
 func GetPersonWithTask() (persons []dbModel.PersonTask, err error) {
 	if err :=
 		database.DB.Preload("TaskDetail.Task").

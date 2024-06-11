@@ -1,29 +1,27 @@
+// Package apihelper provides general functions to use in API
 package apihelper
 
 import (
 	"encoding/json"
-	"fmt"
-	"mpt_data/database/logging"
 	"mpt_data/helper/errors"
 	apiModel "mpt_data/models/apimodel"
+	generalmodel "mpt_data/models/general"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
-
-const packageName = "apihelper"
 
 /*
 InternalError logs error and sends http.StatusInternalServerError
 
-	funcName: Name for logging
 	err: text, that will be logged
 	both not send to client
 */
-func InternalError(w http.ResponseWriter, funcName string, err string) {
+func InternalError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
-	logging.LogError(funcName, err)
+	zap.L().Error(generalmodel.InternalError, zap.Error(err))
 }
 
 /*
@@ -33,7 +31,7 @@ ResponseJSON sends specified data to client as json
 	logs if any error occurs
 	if statusCode is set, uses statusCode, otherwise http.StatusOK
 */
-func ResponseJSON(w http.ResponseWriter, funcName string, data interface{}, statusCode ...int) {
+func ResponseJSON(w http.ResponseWriter, data interface{}, statusCode ...int) {
 	code := http.StatusOK
 	if len(statusCode) > 0 {
 		code = statusCode[0]
@@ -41,11 +39,11 @@ func ResponseJSON(w http.ResponseWriter, funcName string, data interface{}, stat
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if json, err := json.Marshal(data); err != nil {
-		InternalError(w, funcName, err.Error())
+		InternalError(w, err)
 	} else {
 		w.WriteHeader(code)
 		if _, err := w.Write(json); err != nil {
-			logging.LogError(packageName+"ResponseJSON", err.Error())
+			InternalError(w, err)
 		}
 	}
 }
@@ -58,16 +56,16 @@ ResponseError sends specified data to client as problem+json
 	uses statusCode of data
 */
 
-func ResponseError(w http.ResponseWriter, funcName string, data apiModel.ProblemDetails) {
+func ResponseError(w http.ResponseWriter, data apiModel.ProblemDetails) {
 	code := data.Status
 
 	w.Header().Set("Content-Type", "application/problem+json; charset=utf-8")
 	if json, err := json.Marshal(data); err != nil {
-		InternalError(w, funcName, err.Error())
+		InternalError(w, err)
 	} else {
 		w.WriteHeader(code)
 		if _, err := w.Write(json); err != nil {
-			logging.LogError(packageName+"ResponseError", err.Error())
+			InternalError(w, err)
 		}
 	}
 }
@@ -77,9 +75,9 @@ ResponseBadRequest sends data to client with StatusBadRequest
 
 	logs the error with data
 */
-func ResponseBadRequest(w http.ResponseWriter, funcName string, data apiModel.Result, err error) {
-	logging.LogError(funcName, fmt.Sprintf("%v: %v", data.Result, err))
-	ResponseJSON(w, funcName, data, http.StatusBadRequest)
+func ResponseBadRequest(w http.ResponseWriter, data apiModel.Result, err error) {
+	zap.L().Error(generalmodel.StatusBadRequest, zap.Any("Result", data.Result), zap.Error(err))
+	ResponseJSON(w, data, http.StatusBadRequest)
 }
 
 func ExtractIntFromURL(r *http.Request, fieldName string) (int64, error) {

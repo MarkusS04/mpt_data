@@ -3,19 +3,19 @@ package task
 
 import (
 	"encoding/json"
-	"fmt"
-	api_helper "mpt_data/api/apihelper"
+	"mpt_data/api/apihelper"
 	"mpt_data/api/middleware"
 	"mpt_data/database"
-	"mpt_data/database/logging"
 	"mpt_data/database/task"
 	"mpt_data/helper"
 	"mpt_data/helper/errors"
 	"mpt_data/models/apimodel"
 	dbModel "mpt_data/models/dbmodel"
+	generalmodel "mpt_data/models/general"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 const packageName = "api.task"
@@ -51,11 +51,11 @@ func getTask(w http.ResponseWriter, r *http.Request) {
 	tx := middleware.GetTx(r.Context())
 	tasks, err := task.GetTask(tx)
 	if err != nil {
-		api_helper.InternalError(w, funcName, err.Error())
+		apihelper.InternalError(w, err)
 		return
 	}
 
-	api_helper.ResponseJSON(w, funcName, tasks)
+	apihelper.ResponseJSON(w, tasks)
 }
 
 // @Summary		Add Task
@@ -74,7 +74,7 @@ func addTask(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".addTask"
 	var taskIn dbModel.Task
 	if err := json.NewDecoder(r.Body).Decode(&taskIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{
+		apihelper.ResponseBadRequest(w, apimodel.Result{
 			Error:  "failed to decode request body",
 			Result: "Task not added"}, err)
 		return
@@ -84,20 +84,20 @@ func addTask(w http.ResponseWriter, r *http.Request) {
 	err := task.AddTask(tx, &taskIn)
 	switch err {
 	case nil:
-		api_helper.ResponseJSON(w, funcName, apimodel.Result{
+		apihelper.ResponseJSON(w, apimodel.Result{
 			Data:       taskIn,
 			Result:     "Task succesfull created",
 			StatusCode: 201,
 		}, http.StatusCreated)
 		break
 	case errors.ErrTaskAlreadyExists, errors.ErrTaskDescrNotSet, errors.ErrTaskDetailAlreadyExists:
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{
+		apihelper.ResponseBadRequest(w, apimodel.Result{
 			Result: "failed to add task",
 			Error:  err.Error(),
 		}, err)
 		break
 	default:
-		api_helper.InternalError(w, funcName, err.Error())
+		apihelper.InternalError(w, err)
 		break
 	}
 }
@@ -118,7 +118,7 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		api_helper.ResponseBadRequest(w, funcName,
+		apihelper.ResponseBadRequest(w,
 			apimodel.Result{
 				Result: "failed to delete task",
 				Error:  "id not valid"}, err)
@@ -130,8 +130,8 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 
 	tx := middleware.GetTx(r.Context())
 	if err := task.DeleteTask(tx, &tasks); err != nil {
-		logging.LogError(funcName, err.Error())
-		api_helper.ResponseJSON(w, funcName,
+		zap.L().Error(generalmodel.DBDeleteDataFailed, zap.Error(err))
+		apihelper.ResponseJSON(w,
 			apimodel.Result{
 				Result: "failed to delete task",
 				Error:  "Internal Server Error",
@@ -159,7 +159,7 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		api_helper.ResponseBadRequest(w, funcName,
+		apihelper.ResponseBadRequest(w,
 			apimodel.Result{
 				Result: "task not updated",
 				Error:  "id no valid"}, err)
@@ -168,7 +168,7 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 
 	var taskIn dbModel.Task
 	if err := json.NewDecoder(r.Body).Decode(&taskIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{
+		apihelper.ResponseBadRequest(w, apimodel.Result{
 			Result: "task not updated",
 			Error:  "failed to decode request body"}, err)
 		return
@@ -179,17 +179,17 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 	err = task.UpdateTask(tx, taskIn)
 	switch err {
 	case nil:
-		api_helper.ResponseJSON(w, funcName, apimodel.Result{Result: "task sucessful updaed", Data: taskIn}, http.StatusOK)
+		apihelper.ResponseJSON(w, apimodel.Result{Result: "task sucessful updaed", Data: taskIn}, http.StatusOK)
 		break
 	case errors.ErrTaskDescrNotSet:
-		api_helper.ResponseBadRequest(
-			w, funcName, apimodel.Result{
+		apihelper.ResponseBadRequest(
+			w, apimodel.Result{
 				Result: "task not updated",
 				Error:  err.Error(),
 			}, err)
 		break
 	default:
-		api_helper.InternalError(w, funcName, fmt.Sprint("failed to update task", err.Error()))
+		apihelper.InternalError(w, err)
 		break
 	}
 }
@@ -212,7 +212,7 @@ func addTaskDetail(w http.ResponseWriter, r *http.Request) {
 	const funcName = packageName + ".addTaskDetail"
 	var taskIn dbModel.TaskDetail
 	if err := json.NewDecoder(r.Body).Decode(&taskIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName,
+		apihelper.ResponseBadRequest(w,
 			apimodel.Result{
 				Result: "taskdetail not created",
 				Error:  "failed to decode request body"}, err)
@@ -221,7 +221,7 @@ func addTaskDetail(w http.ResponseWriter, r *http.Request) {
 
 	id, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *id <= 0 {
-		api_helper.ResponseBadRequest(w, funcName,
+		apihelper.ResponseBadRequest(w,
 			apimodel.Result{
 				Result: "taskdetail not created",
 				Error:  "id not valid"}, err)
@@ -233,18 +233,18 @@ func addTaskDetail(w http.ResponseWriter, r *http.Request) {
 	err = task.AddTaskDetail(middleware.GetTx(r.Context()), &taskIn)
 	switch err {
 	case nil:
-		api_helper.ResponseJSON(w, funcName, apimodel.Result{
+		apihelper.ResponseJSON(w, apimodel.Result{
 			Result:     "Taskdetail succesfull created",
 			StatusCode: http.StatusCreated,
 		}, http.StatusCreated)
 		break
 	case errors.ErrTaskDetailAlreadyExists, errors.ErrTaskDescrNotSet:
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{
+		apihelper.ResponseBadRequest(w, apimodel.Result{
 			Result: "taskdetail not created",
 			Error:  err.Error()}, err)
 		break
 	default:
-		api_helper.ResponseJSON(w, funcName, apimodel.Result{
+		apihelper.ResponseJSON(w, apimodel.Result{
 			Result:     "taskdetail not created",
 			Error:      "Internal Server Error",
 			StatusCode: http.StatusInternalServerError,
@@ -270,7 +270,7 @@ func deleteTaskDetail(w http.ResponseWriter, r *http.Request) {
 	var taskIn dbModel.TaskDetail
 	idTask, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *idTask <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{
+		apihelper.ResponseBadRequest(w, apimodel.Result{
 			Result: "failed to delete taskdetail",
 			Error:  "id not valid"}, err)
 		return
@@ -278,7 +278,7 @@ func deleteTaskDetail(w http.ResponseWriter, r *http.Request) {
 
 	idDetail, err := helper.ExtractIntFromURL(r, "detailId")
 	if err != nil || *idDetail <= 0 {
-		api_helper.ResponseBadRequest(w, funcName,
+		apihelper.ResponseBadRequest(w,
 			apimodel.Result{
 				Result: "failed to delete taskdetail",
 				Error:  "id not valid"}, err)
@@ -291,14 +291,15 @@ func deleteTaskDetail(w http.ResponseWriter, r *http.Request) {
 	err = task.DeleteTaskDetail(middleware.GetTx(r.Context()), taskIn)
 	switch err {
 	case nil:
-		api_helper.ResponseJSON(w, funcName,
+		apihelper.ResponseJSON(w,
 			apimodel.Result{
 				Result:     "taskdetail succesfull deleted",
 				StatusCode: http.StatusOK,
 			})
 		break
 	case errors.ErrTaskDetailAlreadyExists, errors.ErrTaskDescrNotSet:
-		api_helper.ResponseJSON(w, funcName,
+		zap.L().Info(generalmodel.DBDeleteDataFailed, zap.Error(err))
+		apihelper.ResponseJSON(w,
 			apimodel.Result{
 				Result:     "failed to delete taskdetail",
 				Error:      err.Error(),
@@ -307,8 +308,8 @@ func deleteTaskDetail(w http.ResponseWriter, r *http.Request) {
 			http.StatusBadRequest)
 		break
 	default:
-		logging.LogError(funcName, err.Error())
-		api_helper.ResponseJSON(w, funcName,
+		zap.L().Error(generalmodel.DBDeleteDataFailed, zap.Error(err))
+		apihelper.ResponseJSON(w,
 			apimodel.Result{
 				Result:     "failed to delete taskdetail",
 				StatusCode: http.StatusInternalServerError,
@@ -336,19 +337,19 @@ func updateTaskDetail(w http.ResponseWriter, r *http.Request) {
 
 	idTask, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *idTask <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "invalid id"}, err)
+		apihelper.ResponseBadRequest(w, apimodel.Result{Result: "invalid id"}, err)
 		return
 	}
 
 	idDetail, err := helper.ExtractIntFromURL(r, "detailId")
 	if err != nil || *idDetail <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "invalid id"}, err)
+		apihelper.ResponseBadRequest(w, apimodel.Result{Result: "invalid id"}, err)
 		return
 	}
 
 	var taskIn dbModel.TaskDetail
 	if err := json.NewDecoder(r.Body).Decode(&taskIn); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "failed to decode request body"}, err)
+		apihelper.ResponseBadRequest(w, apimodel.Result{Result: "failed to decode request body"}, err)
 		return
 	}
 	taskIn.TaskID = uint(*idTask)
@@ -360,14 +361,14 @@ func updateTaskDetail(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		break
 	case errors.ErrTaskDescrNotSet:
-		api_helper.ResponseJSON(w, funcName, apimodel.Result{
+		apihelper.ResponseJSON(w, apimodel.Result{
 			Result:     "failed to update task",
 			Error:      err.Error(),
 			StatusCode: http.StatusBadRequest,
 		}, http.StatusBadRequest)
 		break
 	default:
-		api_helper.InternalError(w, funcName, fmt.Sprint("failed to update task", err.Error()))
+		apihelper.InternalError(w, err)
 		break
 	}
 }
@@ -388,7 +389,7 @@ func updateOrderTask(w http.ResponseWriter, r *http.Request) {
 
 	var data []apimodel.OrderTask
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "failed to decode request body"}, err)
+		apihelper.ResponseBadRequest(w, apimodel.Result{Result: "failed to decode request body"}, err)
 		return
 	}
 
@@ -396,7 +397,7 @@ func updateOrderTask(w http.ResponseWriter, r *http.Request) {
 	defer tx.Commit()
 	if err := task.OrderTask(tx, data); err != nil {
 		tx.Rollback()
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "could not update order of task"}, err)
+		apihelper.ResponseBadRequest(w, apimodel.Result{Result: "could not update order of task"}, err)
 		return
 	}
 
@@ -420,13 +421,13 @@ func updateOrderTaskDetail(w http.ResponseWriter, r *http.Request) {
 
 	idTask, err := helper.ExtractIntFromURL(r, "id")
 	if err != nil || *idTask <= 0 {
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "invalid id"}, err)
+		apihelper.ResponseBadRequest(w, apimodel.Result{Result: "invalid id"}, err)
 		return
 	}
 
 	var data []apimodel.OrderTaskDetail
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "failed to decode request body"}, err)
+		apihelper.ResponseBadRequest(w, apimodel.Result{Result: "failed to decode request body"}, err)
 		return
 	}
 
@@ -434,7 +435,7 @@ func updateOrderTaskDetail(w http.ResponseWriter, r *http.Request) {
 	defer tx.Commit()
 	if err := task.OrderTaskDetail(tx, data, uint(*idTask)); err != nil {
 		tx.Rollback()
-		api_helper.ResponseBadRequest(w, funcName, apimodel.Result{Result: "could not update order of task"}, err)
+		apihelper.ResponseBadRequest(w, apimodel.Result{Result: "could not update order of task"}, err)
 		return
 	}
 

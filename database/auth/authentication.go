@@ -1,23 +1,23 @@
+// Package auth provides functionallity for authentication and authorisation
 package auth
 
 import (
-	"fmt"
 	"mpt_data/database"
-	"mpt_data/database/logging"
 	"mpt_data/helper/errors"
 	apiModel "mpt_data/models/apimodel"
 	dbModel "mpt_data/models/dbmodel"
+	generalmodel "mpt_data/models/general"
 
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Login tests user-credentials and if succesfull returns an JWT-Token
 func Login(user apiModel.UserLogin) (string, error) {
 	userDb, err := validateUser(user)
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Println(userDb.ID)
 
 	token, err := generateJWT(*userDb)
 	if err != nil {
@@ -51,7 +51,7 @@ func validateUser(user apiModel.UserLogin) (*dbModel.User, error) {
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(userDb.Hash), []byte(user.Password)); err != nil {
-		logging.LogWarning("database.auth.validateUser", err.Error())
+		zap.L().Warn(generalmodel.UserInvalidLogin, zap.Error(err))
 		return nil, errors.ErrInvalidAuth
 	}
 
