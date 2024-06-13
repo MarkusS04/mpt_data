@@ -47,6 +47,8 @@ func validateUser(user apiModel.UserLogin) (*dbModel.User, error) {
 	}
 
 	if err := db.Where("username = ?", userDb.Username).First(&userDb).Error; err != nil {
+		userDb.Decrypt()
+		zap.L().Warn(generalmodel.UserInvalidLogin, zap.Error(err), zap.String("username", userDb.Username))
 		return nil, errors.ErrInvalidAuth
 	}
 
